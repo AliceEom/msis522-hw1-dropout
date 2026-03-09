@@ -52,6 +52,12 @@ def strongest_corr_pair(df: pd.DataFrame, feature_names: List[str]) -> Tuple[str
     return str(corr.index[i]), str(corr.columns[j]), float(arr[i, j])
 
 
+def get_corr_value(corr_df: pd.DataFrame, col_a: str, col_b: str) -> float:
+    if col_a in corr_df.columns and col_b in corr_df.columns:
+        return float(corr_df.loc[col_a, col_b])
+    return float("nan")
+
+
 def get_full_corr_columns(df: pd.DataFrame) -> List[str]:
     cols = [c for c in df.select_dtypes(include=[np.number]).columns.tolist() if c != "Dropout_flag"]
     if "Dropout_flag" in df.columns:
@@ -393,12 +399,21 @@ duplicate_rows = int(df.duplicated().sum())
 
 feature_names = meta["feature_selection"]["final_features"]
 corr_columns = get_full_corr_columns(df)
+corr_full = df[corr_columns].corr()
 manual_input_features = meta.get("manual_input_features", [])
 feature_ranges = meta["feature_ranges"]
 feature_means = meta["feature_means"]
 best_tree_model = meta["best_tree_model_for_shap"]
 captions = meta["captions"]
 top_corr_a, top_corr_b, top_corr_val = strongest_corr_pair(df, corr_columns)
+corr_first_second_grade = get_corr_value(corr_full, "Curricular units 1st sem (grade)", "Curricular units 2nd sem (grade)")
+corr_first_second_approved = get_corr_value(corr_full, "Curricular units 1st sem (approved)", "Curricular units 2nd sem (approved)")
+corr_parent_occ = get_corr_value(corr_full, "Mother's occupation", "Father's occupation")
+corr_target_second_grade = get_corr_value(corr_full, "Curricular units 2nd sem (grade)", "Dropout_flag")
+corr_target_tuition = get_corr_value(corr_full, "Tuition fees up to date", "Dropout_flag")
+corr_target_debtor = get_corr_value(corr_full, "Debtor", "Dropout_flag")
+corr_target_scholarship = get_corr_value(corr_full, "Scholarship holder", "Dropout_flag")
+corr_target_age = get_corr_value(corr_full, "Age at enrollment", "Dropout_flag")
 shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
 eda_highlights = compute_eda_highlights(df)
 tradeoff_text = build_model_tradeoff_text(comparison_df)
@@ -690,6 +705,15 @@ with tab2:
             f"Strongest absolute correlation in the full numeric set: **{top_corr_a}** vs **{top_corr_b}** "
             f"with **|r| = {top_corr_val:.3f}**."
         )
+    st.markdown("**Heatmap interpretation (5 practical takeaways):**")
+    st.markdown(
+        f"1. Academic continuity is strong across semesters: first-semester and second-semester grades move together "
+        f"(**r = {corr_first_second_grade:.3f}**), and approved units show a similar pattern (**r = {corr_first_second_approved:.3f}**).\n"
+        f"2. Parent occupation fields are highly aligned (**r = {corr_parent_occ:.3f}**), which suggests these columns capture overlapping background signal.\n"
+        f"3. Second-semester grade has one of the strongest direct links with dropout (**r = {corr_target_second_grade:.3f}** with `Dropout_flag`), so low semester performance is an early warning sign.\n"
+        f"4. Financial stress appears in the matrix too: tuition up-to-date is negatively related to dropout (**r = {corr_target_tuition:.3f}**), while debtor status is positively related (**r = {corr_target_debtor:.3f}**).\n"
+        f"5. Student context matters beyond grades: scholarship status is protective (**r = {corr_target_scholarship:.3f}**) and age at enrollment shows added risk pressure (**r = {corr_target_age:.3f}**)."
+    )
 
 
 with tab3:
