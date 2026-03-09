@@ -1322,12 +1322,24 @@ with tab3:
     st.subheader("MLP Hyperparameter Tuning")
     st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
     st.markdown(
+        "Heatmap reading tip: each cell is one hyperparameter combination, and darker cells indicate higher validation F1."
+    )
+    st.markdown(
         "Tuning approach: we performed a structured grid search over hidden-layer width patterns, "
         "learning rates, and dropout rates using a train-only validation split and validation F1 as the selection criterion."
     )
     st.markdown(
         "Search space: hidden layers `[(64,64), (128,128), (128,64)]` x learning rate `[0.001, 0.0005]` x "
         "dropout `[0.0, 0.2]` = **12 candidate configurations**."
+    )
+    st.markdown(
+        "**How to read the values in this section:**\n"
+        "1. **Hidden Layers `(a, b)`** means two hidden layers: first has `a` neurons, second has `b` neurons.\n"
+        "2. **Learning Rate** controls update step size for Adam (`0.001` = faster updates, `0.0005` = slower but often steadier).\n"
+        "3. **Dropout** is the share of hidden units randomly turned off each training step (`0.2` means 20%).\n"
+        "4. **Validation F1** is the main tuning score here; higher is better because it balances precision and recall.\n"
+        "5. **Epochs Trained** shows how long the model actually trained before early stopping.\n"
+        "6. **Best Val Loss** is the lowest validation loss seen during training; lower means better fit on validation data."
     )
     if bonus_best_row is not None:
         st.markdown(
