@@ -447,7 +447,7 @@ tab1, tab2, tab3, tab4 = st.tabs(
     [
         "Executive Summary",
         "Descriptive Analytics",
-        "Model Performance",
+        "Predictive Analytics",
         "Explainability & Interactive Prediction",
     ]
 )
@@ -751,6 +751,28 @@ with tab2:
 
 
 with tab3:
+    st.header("Part 2: Predictive Analytics")
+
+    def one_row_metrics(model_key: str, label: str) -> pd.DataFrame:
+        m = metrics.get(model_key, {})
+        return pd.DataFrame(
+            [
+                {
+                    "Model": label,
+                    "Accuracy": m.get("accuracy", np.nan),
+                    "Precision": m.get("precision", np.nan),
+                    "Recall": m.get("recall", np.nan),
+                    "F1": m.get("f1", np.nan),
+                    "AUC-ROC": m.get("auc", np.nan),
+                }
+            ]
+        )
+
+    baseline_f1 = float(metrics.get("logistic", {}).get("f1", np.nan))
+    best_row_by_f1 = comparison_df.sort_values("f1", ascending=False).iloc[0]
+    best_model_name = str(best_row_by_f1["model"])
+    best_model_f1 = float(best_row_by_f1["f1"])
+
     st.subheader("2.1 Data Preparation")
     st.markdown(
         f"**X and y definition:** `y = Dropout_flag` (1 = Dropout, 0 = Non-dropout) and "
@@ -796,6 +818,7 @@ with tab3:
         "on the training split only (`random_state=42`); MLP hyperparameters are tuned with a **train-only hold-out validation split**; "
         "final model metrics are reported once on the untouched **30% test set**."
     )
+
     st.subheader("Imbalanced-Data Handling")
     st.markdown(
         f"The binary target is imbalanced (**Dropout = {eda_highlights['dropout_rate']:.1%}**, "
@@ -810,12 +833,77 @@ with tab3:
         "We intentionally did not rely on random oversampling in this submission, because weighted objectives already improved minority sensitivity while keeping the pipeline simple and reproducible."
     )
 
+    st.subheader("2.2 Logistic Regression Baseline")
+    st.markdown(
+        "Classification baseline model is Logistic Regression. "
+        "Required test metrics (Accuracy, Precision, Recall, F1, AUC-ROC) are reported below."
+    )
+    st.dataframe(one_row_metrics("logistic", "Logistic Regression (Baseline)"), hide_index=True, width="stretch")
+    st.image(str(FIGURES / "part2_roc_logistic.png"), width="stretch")
+
+    st.subheader("2.3 Decision Tree (GridSearchCV, 5-fold)")
+    st.markdown(
+        "Tuning grid: `max_depth = [3, 5, 7, 10]`, `min_samples_leaf = [5, 10, 20, 50]`, `scoring = F1`."
+    )
+    st.markdown(f"Best params: `{best_params.get('decision_tree', {})}`")
+    st.dataframe(one_row_metrics("decision_tree", "Decision Tree"), hide_index=True, width="stretch")
+    tree_col1, tree_col2 = st.columns(2)
+    with tree_col1:
+        st.image(str(FIGURES / "part2_best_decision_tree.png"), width="stretch")
+    with tree_col2:
+        st.image(str(FIGURES / "part2_roc_decision_tree.png"), width="stretch")
+
+    st.subheader("2.4 Random Forest (GridSearchCV, 5-fold)")
+    st.markdown(
+        "Tuning grid: `n_estimators = [50, 100, 200]`, `max_depth = [3, 5, 8]`, `scoring = F1`."
+    )
+    st.markdown(f"Best params: `{best_params.get('random_forest', {})}`")
+    st.dataframe(one_row_metrics("random_forest", "Random Forest"), hide_index=True, width="stretch")
+    st.image(str(FIGURES / "part2_roc_random_forest.png"), width="stretch")
+
+    st.subheader("2.5 Boosted Tree (LightGBM, GridSearchCV, 5-fold)")
+    st.markdown(
+        "Boosted-tree implementation uses LightGBM. "
+        "Tuning covers at least 3 hyperparameters: "
+        "`n_estimators = [50, 100, 200]`, `max_depth = [3, 4, 5, 6]`, `learning_rate = [0.01, 0.05, 0.1]` with `scoring = F1`."
+    )
+    st.markdown(f"Best params: `{best_params.get('lightgbm', {})}`")
+    st.dataframe(one_row_metrics("lightgbm", "Boosted Tree (LightGBM)"), hide_index=True, width="stretch")
+    st.image(str(FIGURES / "part2_roc_lightgbm.png"), width="stretch")
+
+    st.subheader("2.6 Neural Network (Keras MLP)")
+    st.markdown(
+        "Architecture: input layer -> at least two hidden ReLU layers -> sigmoid output. "
+        "Loss: `binary_crossentropy`; Optimizer: `Adam`; class weights applied for imbalance handling."
+    )
+    st.markdown(f"Best tuned MLP config: `{best_params.get('mlp_keras', {})}`")
+    st.dataframe(one_row_metrics("mlp_keras", "MLP (Keras)"), hide_index=True, width="stretch")
+    mlp_col1, mlp_col2 = st.columns(2)
+    with mlp_col1:
+        st.image(str(FIGURES / "part2_mlp_training_history.png"), width="stretch")
+    with mlp_col2:
+        st.image(str(FIGURES / "part2_roc_mlp_keras.png"), width="stretch")
+
+    st.subheader("Bonus +1: MLP Hyperparameter Tuning")
+    st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
+
     st.subheader("2.7 Model Comparison Summary")
     st.dataframe(comparison_df, width="stretch")
-
     st.image(str(FIGURES / "part2_f1_bar_comparison.png"), width="stretch")
+    if not np.isnan(baseline_f1):
+        delta = best_model_f1 - baseline_f1
+        if best_model_name != "logistic":
+            st.markdown(
+                f"Baseline check: Logistic F1 is **{baseline_f1:.3f}**. "
+                f"Best model by F1 is **{best_model_name}** at **{best_model_f1:.3f}** "
+                f"(improvement **{delta:.3f}** over baseline)."
+            )
+        else:
+            st.markdown(
+                f"Baseline check: Logistic is currently the top F1 model at **{baseline_f1:.3f}**."
+            )
 
-    st.subheader("Best Hyperparameters")
+    st.subheader("Best Hyperparameters (All Models)")
     st.json(best_params)
 
     st.subheader("ROC Curves (All Models)")
@@ -830,15 +918,6 @@ with tab3:
     for i, fn in enumerate(roc_files):
         with roc_cols[i % 2]:
             st.image(str(FIGURES / fn), width="stretch")
-
-    st.subheader("Decision Tree Snapshot")
-    st.image(str(FIGURES / "part2_best_decision_tree.png"), width="stretch")
-
-    st.subheader("MLP Training History")
-    st.image(str(FIGURES / "part2_mlp_training_history.png"), width="stretch")
-
-    st.subheader("Bonus: MLP Tuning Visualization")
-    st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
 
     st.markdown(tradeoff_text)
 
