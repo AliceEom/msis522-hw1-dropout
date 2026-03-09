@@ -265,6 +265,7 @@ top_corr_a, top_corr_b, top_corr_val = strongest_corr_pair(df, feature_names)
 shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
 eda_highlights = compute_eda_highlights(df)
 tradeoff_text = build_model_tradeoff_text(comparison_df)
+original_counts = meta["dataset_stats"].get("target_counts_original", {})
 
 st.title("Student Dropout Risk Modeling for Early Intervention")
 st.caption(
@@ -310,7 +311,6 @@ with tab1:
         "financial indicators (tuition status, debtor status, scholarship), and family-background attributes, "
         "including parents' academic background and occupation."
     )
-    original_counts = meta["dataset_stats"].get("target_counts_original", {})
     if original_counts:
         st.markdown(
             f"Original 3-class outcome distribution (before binary reformulation): "
@@ -385,6 +385,15 @@ with tab2:
         f"Observed class mix: **Dropout = {eda_highlights['dropout_rate']:.1%}** and **Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**. "
         "This confirms that F1/AUC are more reliable than accuracy alone for model selection."
     )
+    if original_counts:
+        enrolled_n = int(original_counts.get("Enrolled", 0))
+        graduate_n = int(original_counts.get("Graduate", 0))
+        dropout_n = int(original_counts.get("Dropout", 0))
+        non_dropout_n = enrolled_n + graduate_n
+        st.markdown(
+            f"Class definition for this binary chart: **Dropout (1) = original Dropout ({dropout_n})**; "
+            f"**Non-dropout (0) = original Enrolled + Graduate ({enrolled_n} + {graduate_n} = {non_dropout_n})**."
+        )
     st.markdown(
         "Imbalance response used in this project: stratified splitting, class-weighted training, and evaluation focused on F1/AUC instead of accuracy-only reporting."
     )
