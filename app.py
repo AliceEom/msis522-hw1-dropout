@@ -52,6 +52,62 @@ def strongest_corr_pair(df: pd.DataFrame, feature_names: List[str]) -> Tuple[str
 
 
 @st.cache_data
+def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
+    tmp = df.copy()
+    out: Dict[str, float] = {}
+
+    out["dropout_rate"] = float(tmp["Dropout_flag"].mean())
+
+    debtor_1 = tmp.loc[tmp["Debtor"] == 1, "Dropout_flag"]
+    debtor_0 = tmp.loc[tmp["Debtor"] == 0, "Dropout_flag"]
+    out["dropout_debtor_1"] = float(debtor_1.mean()) if len(debtor_1) else float("nan")
+    out["dropout_debtor_0"] = float(debtor_0.mean()) if len(debtor_0) else float("nan")
+
+    sch_1 = tmp.loc[tmp["Scholarship holder"] == 1, "Dropout_flag"]
+    sch_0 = tmp.loc[tmp["Scholarship holder"] == 0, "Dropout_flag"]
+    out["dropout_scholar_1"] = float(sch_1.mean()) if len(sch_1) else float("nan")
+    out["dropout_scholar_0"] = float(sch_0.mean()) if len(sch_0) else float("nan")
+
+    out["admission_non_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 0, "Admission grade"].mean())
+    out["admission_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 1, "Admission grade"].mean())
+
+    out["first_sem_non_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 0, "Curricular units 1st sem (grade)"].mean())
+    out["first_sem_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 1, "Curricular units 1st sem (grade)"].mean())
+
+    q = pd.qcut(
+        tmp["Curricular units 1st sem (grade)"],
+        4,
+        labels=["Q1", "Q2", "Q3", "Q4"],
+        duplicates="drop",
+    )
+    q_rate = tmp.groupby(q, observed=True)["Dropout_flag"].mean()
+    out["dropout_q1"] = float(q_rate.get("Q1", np.nan))
+    out["dropout_q4"] = float(q_rate.get("Q4", np.nan))
+    return out
+
+
+def build_model_tradeoff_text(comparison_df: pd.DataFrame) -> str:
+    by_f1 = comparison_df.sort_values("f1", ascending=False).reset_index(drop=True)
+    by_auc = comparison_df.sort_values("auc", ascending=False).reset_index(drop=True)
+    by_precision = comparison_df.sort_values("precision", ascending=False).reset_index(drop=True)
+    by_recall = comparison_df.sort_values("recall", ascending=False).reset_index(drop=True)
+
+    best_f1 = by_f1.iloc[0]
+    best_auc = by_auc.iloc[0]
+    best_precision = by_precision.iloc[0]
+    best_recall = by_recall.iloc[0]
+
+    return (
+        f"**Model comparison interpretation.** The strongest test-set F1 is from **{best_f1['model']}** "
+        f"({best_f1['f1']:.3f}), while the highest AUC is from **{best_auc['model']}** ({best_auc['auc']:.3f}). "
+        f"The best precision is **{best_precision['model']}** ({best_precision['precision']:.3f}), and the best recall is "
+        f"**{best_recall['model']}** ({best_recall['recall']:.3f}). "
+        "This pattern suggests a practical trade-off: tree ensembles and tuned classifiers provide stronger ranking power, "
+        "while model choice should reflect intervention policy (catching more at-risk students vs. minimizing false alerts)."
+    )
+
+
+@st.cache_data
 def load_metadata() -> Dict[str, Any]:
     with (META / "project_metadata.json").open("r", encoding="utf-8") as f:
         return json.load(f)
@@ -205,6 +261,8 @@ best_tree_model = meta["best_tree_model_for_shap"]
 captions = meta["captions"]
 top_corr_a, top_corr_b, top_corr_val = strongest_corr_pair(df, feature_names)
 shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
+eda_highlights = compute_eda_highlights(df)
+tradeoff_text = build_model_tradeoff_text(comparison_df)
 
 st.title("MSIS 522 HW1: End-to-End Data Science Workflow")
 st.caption(
@@ -250,6 +308,11 @@ with tab1:
         "Model comparison shows that tree ensembles provide the strongest nonlinear predictive power, while logistic regression remains useful for interpretable directional effects."
     )
     st.markdown(
+        f"In this run, overall dropout prevalence is **{eda_highlights['dropout_rate']:.1%}**. "
+        f"The strongest early warning pattern is academic: average first-semester grade is **{eda_highlights['first_sem_dropout']:.2f}** in the dropout group "
+        f"versus **{eda_highlights['first_sem_non_dropout']:.2f}** in the non-dropout group."
+    )
+    st.markdown(
         "The final app surfaces all required outputs: Part 1 visuals and interpretations, Part 2 metrics/ROC/hyperparameters, and Part 3 SHAP global + local explanations. "
         "Interactive prediction allows a user to set key feature values and inspect both predicted risk and feature-level contribution via SHAP waterfall."
     )
@@ -275,17 +338,40 @@ with tab2:
 
     st.image(str(FIGURES / "part1_target_distribution.png"), width="stretch")
     st.caption(captions["target_distribution"])
+    st.markdown(
+        f"Observed class mix: **Dropout = {eda_highlights['dropout_rate']:.1%}** and **Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**. "
+        "This confirms that F1/AUC are more reliable than accuracy alone for model selection."
+    )
 
     col_a, col_b = st.columns(2)
     with col_a:
         st.image(str(FIGURES / "part1_admission_grade_boxplot.png"), width="stretch")
         st.caption(captions["admission_grade_boxplot"])
+        st.markdown(
+            f"Mean admission grade is **{eda_highlights['admission_dropout']:.2f}** for dropout students "
+            f"vs **{eda_highlights['admission_non_dropout']:.2f}** for non-dropout students. "
+            "This is not the largest gap in the dataset, but it is directionally consistent with risk."
+        )
     with col_b:
         st.image(str(FIGURES / "part1_first_sem_grade_boxplot.png"), width="stretch")
         st.caption(captions["first_sem_grade_boxplot"])
+        st.markdown(
+            f"Mean first-semester grade is **{eda_highlights['first_sem_dropout']:.2f}** for dropout students "
+            f"and **{eda_highlights['first_sem_non_dropout']:.2f}** for non-dropout students. "
+            "This large separation supports using early academic performance as a primary intervention trigger."
+        )
 
     st.image(str(FIGURES / "part1_dropout_by_grade_quartile.png"), width="stretch")
     st.caption(captions["dropout_by_grade_quartile"])
+    st.markdown(
+        f"Dropout risk by quartile is highly nonlinear: **Q1 = {eda_highlights['dropout_q1']:.1%}** vs **Q4 = {eda_highlights['dropout_q4']:.1%}**. "
+        "In practical terms, students in the lowest performance quartile should be prioritized for early support."
+    )
+    st.markdown(
+        f"Financial signals show a similar risk pattern: debtors have **{eda_highlights['dropout_debtor_1']:.1%}** dropout "
+        f"vs **{eda_highlights['dropout_debtor_0']:.1%}** for non-debtors; scholarship holders have **{eda_highlights['dropout_scholar_1']:.1%}** "
+        f"vs **{eda_highlights['dropout_scholar_0']:.1%}** for non-holders."
+    )
 
     st.image(str(FIGURES / "part1_correlation_heatmap.png"), width="stretch")
     st.caption(captions["correlation_heatmap"])
@@ -333,8 +419,7 @@ with tab3:
     st.subheader("Bonus: MLP Tuning Visualization")
     st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
 
-    comparison_paragraph = (META / "model_comparison_paragraph.txt").read_text(encoding="utf-8")
-    st.markdown(comparison_paragraph)
+    st.markdown(tradeoff_text)
 
 
 with tab4:
