@@ -714,6 +714,14 @@ with tab2:
         f"4. Financial stress appears in the matrix too: tuition up-to-date is negatively related to dropout (**r = {corr_target_tuition:.3f}**), while debtor status is positively related (**r = {corr_target_debtor:.3f}**).\n"
         f"5. Student context matters beyond grades: scholarship status is protective (**r = {corr_target_scholarship:.3f}**) and age at enrollment shows added risk pressure (**r = {corr_target_age:.3f}**)."
     )
+    st.markdown("**What this means for modeling:**")
+    st.markdown(
+        "1. We prioritize academic-progress and financial-status variables as core predictors, because they carry the clearest risk signal in the correlation structure.\n"
+        "2. We avoid feeding too many near-duplicate academic columns at once; train-only recheck and correlation filtering keep the feature set stable and reduce multicollinearity risk.\n"
+        "3. We do not treat one high-correlation feature as the whole story. Final model choice still depends on out-of-sample F1/AUC and precision-recall trade-offs.\n"
+        "4. Correlation is only pairwise association, so we validate interactions with tree-based models and use SHAP to confirm how features contribute to individual predictions.\n"
+        "5. In practice, the strongest prediction signals here point to a combined intervention policy: monitor low semester performance together with tuition/debtor risk, then prioritize those students for early support."
+    )
 
 
 with tab3:
