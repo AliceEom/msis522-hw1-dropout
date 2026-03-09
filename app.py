@@ -252,6 +252,8 @@ best_params = load_best_params()
 comparison_df = load_comparison_df()
 df = load_data()
 models = load_models()
+missing_total = int(df.isna().sum().sum())
+duplicate_rows = int(df.duplicated().sum())
 
 feature_names = meta["feature_selection"]["final_features"]
 manual_input_features = meta.get("manual_input_features", [])
@@ -295,11 +297,35 @@ with tab1:
     st.markdown(
         "Source: [UCI Dataset Page](https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+academic+success)"
     )
+    st.markdown(
+        "**What the dataset contains:** demographic profile (e.g., age, gender, nationality), "
+        "application/admission variables, academic progression variables (first/second semester performance), "
+        "financial indicators (tuition status, debtor status, scholarship), and family-background attributes."
+    )
+    original_counts = meta["dataset_stats"].get("target_counts_original", {})
+    if original_counts:
+        st.markdown(
+            f"Original 3-class outcome distribution (before binary reformulation): "
+            f"**Dropout = {original_counts.get('Dropout', 'N/A')}**, "
+            f"**Enrolled = {original_counts.get('Enrolled', 'N/A')}**, "
+            f"**Graduate = {original_counts.get('Graduate', 'N/A')}**."
+        )
+
+    st.subheader("Data Cleaning and Preparation Notes")
+    st.markdown(
+        "The raw CSV is semicolon-delimited, so the pipeline first standardizes column formatting and harmonizes types for modeling. "
+        f"Data-quality checks on this submission dataset show **{missing_total} missing values** and **{duplicate_rows} duplicate rows**. "
+        "For prediction, the original 3-class target is converted to a binary early-warning target focused on dropout risk."
+    )
 
     st.subheader("Why This Problem Matters")
     st.markdown(
         "Student dropout is not only an academic KPI; it has direct implications for institutional planning, student support allocation, and equity outcomes. "
         "A reliable early-warning model helps identify high-risk students before failure compounds, enabling targeted interventions where they matter most."
+    )
+    st.markdown(
+        "From an operations and business perspective, this supports advisor workload triage, retention-oriented scholarship policy, "
+        "tuition-risk monitoring, and better allocation of limited student-success resources."
     )
 
     st.subheader("Approach and Key Findings")

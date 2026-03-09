@@ -14,10 +14,12 @@ It follows the required structure: descriptive analytics, predictive modeling, S
 
 ## 2. Dataset Description for Report/Slides
 - The dataset includes **4,424 students** and **36 predictive features** covering demographic, application, financial, and academic dimensions.
+- Example feature groups: age/gender/nationality, admission profile, first/second-semester grades and approvals, tuition/debtor/scholarship indicators, and family background.
 - The original UCI task is a 3-class outcome (`Dropout`, `Enrolled`, `Graduate`) with class imbalance; this HW1 implementation reformulates the target into binary dropout risk.
 - Target used in this repository:
   - `1 = Dropout`
   - `0 = Enrolled or Graduate`
+- Data cleaning checks on the submitted dataset: 0 missing values, 0 duplicated rows.
 
 ## 3. HW1 Requirement Coverage
 - Train/test split first (`70/30`, `stratify`, `random_state=42`)
