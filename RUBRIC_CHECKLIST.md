@@ -76,4 +76,5 @@
   - Evidence: `requirements.txt`
 - [x] README
   - Evidence: `README.md`
-- [ ] Public deployed link (to be added after deployment)
+- [x] Public deployed link
+  - Evidence: [https://studentdropout-prediction-ml.streamlit.app/](https://studentdropout-prediction-ml.streamlit.app/)

@@ -41,6 +41,16 @@ def load_data() -> pd.DataFrame:
     return df
 
 
+def strongest_corr_pair(df: pd.DataFrame, feature_names: List[str]) -> Tuple[str, str, float]:
+    corr = df[feature_names].corr().abs()
+    arr = corr.to_numpy()
+    np.fill_diagonal(arr, np.nan)
+    if np.isnan(arr).all():
+        return "N/A", "N/A", float("nan")
+    i, j = np.unravel_index(np.nanargmax(arr), arr.shape)
+    return str(corr.index[i]), str(corr.columns[j]), float(arr[i, j])
+
+
 @st.cache_data
 def load_metadata() -> Dict[str, Any]:
     with (META / "project_metadata.json").open("r", encoding="utf-8") as f:
@@ -141,6 +151,45 @@ def make_custom_waterfall(
     return fig
 
 
+@st.cache_data
+def compute_shap_interpretation(
+    _df: pd.DataFrame,
+    _feature_names: List[str],
+    _best_tree_model: str,
+) -> List[Dict[str, Any]]:
+    model_map = load_models()
+    tree_pipe = model_map[_best_tree_model]
+    X = _df[_feature_names].copy()
+    X_trans = tree_pipe.named_steps["preprocess"].transform(X)
+    X_trans_df = pd.DataFrame(X_trans, columns=_feature_names)
+
+    explainer = shap.TreeExplainer(tree_pipe.named_steps["model"])
+    shap_raw = explainer.shap_values(X_trans_df)
+    shap_values, _ = extract_pos_class_shap(shap_raw, explainer.expected_value)
+
+    mean_abs = np.mean(np.abs(shap_values), axis=0)
+    top_idx = np.argsort(mean_abs)[::-1][:3]
+    output: List[Dict[str, Any]] = []
+
+    for idx in top_idx:
+        feat = _feature_names[int(idx)]
+        corr = np.corrcoef(X_trans_df[feat].to_numpy(), shap_values[:, int(idx)])[0, 1]
+        if np.isnan(corr):
+            direction = "direction is weak or non-linear in aggregate"
+        elif corr > 0:
+            direction = "higher values tend to increase dropout risk"
+        else:
+            direction = "higher values tend to decrease dropout risk"
+        output.append(
+            {
+                "feature": feat,
+                "mean_abs_shap": float(mean_abs[int(idx)]),
+                "direction": direction,
+            }
+        )
+    return output
+
+
 meta = load_metadata()
 metrics = load_metrics()
 best_params = load_best_params()
@@ -154,6 +203,8 @@ feature_ranges = meta["feature_ranges"]
 feature_means = meta["feature_means"]
 best_tree_model = meta["best_tree_model_for_shap"]
 captions = meta["captions"]
+top_corr_a, top_corr_b, top_corr_val = strongest_corr_pair(df, feature_names)
+shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
 
 st.title("MSIS 522 HW1: End-to-End Data Science Workflow")
 st.caption(
@@ -182,6 +233,7 @@ with tab1:
         "The original outcome is 3-class (`Dropout`, `Enrolled`, `Graduate`), and this HW1 implementation "
         "reformulates the task as binary: **Dropout = 1** and **Non-dropout (Enrolled + Graduate) = 0**."
     )
+    st.markdown("UCI feature types include **real, integer, and categorical** variables.")
     st.markdown(
         "Source: [UCI Dataset Page](https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+academic+success)"
     )
@@ -237,9 +289,20 @@ with tab2:
 
     st.image(str(FIGURES / "part1_correlation_heatmap.png"), width="stretch")
     st.caption(captions["correlation_heatmap"])
+    if not np.isnan(top_corr_val):
+        st.markdown(
+            f"Strongest absolute correlation in the selected feature set: **{top_corr_a}** vs **{top_corr_b}** "
+            f"with **|r| = {top_corr_val:.3f}**."
+        )
 
 
 with tab3:
+    st.subheader("2.1 Data Preparation")
+    st.markdown(
+        "Target is encoded as `Dropout_flag` (1/0), then data is split with a stratified 70/30 train-test split (`random_state=42`). "
+        "Missing values are imputed; scaling is applied where needed (logistic/MLP), and all feature recheck and tuning decisions are performed on training data to prevent leakage."
+    )
+
     st.subheader("2.7 Model Comparison Summary")
     st.dataframe(comparison_df, width="stretch")
 
@@ -282,6 +345,20 @@ with tab4:
     st.markdown(
         "**Interpretation guidance:** Features at the top of the SHAP ranking have the strongest average impact on risk scores. "
         "Positive SHAP values push toward dropout, while negative values push toward non-dropout."
+    )
+    st.subheader("Required Interpretation")
+    st.markdown(
+        "1. **Strongest impact features:** "
+        + ", ".join([f"`{x['feature']}`" for x in shap_interpretation])
+        + "."
+    )
+    st.markdown(
+        "2. **Direction of influence:** "
+        + "; ".join([f"`{x['feature']}`: {x['direction']}" for x in shap_interpretation])
+        + "."
+    )
+    st.markdown(
+        "3. **Decision-use implication:** These drivers can support proactive intervention policies (academic support, advising, and tuition-risk outreach) by identifying which factors most strongly move individual risk predictions."
     )
 
     st.subheader("Interactive Prediction")

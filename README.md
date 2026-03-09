@@ -8,6 +8,7 @@ It follows the required structure: descriptive analytics, predictive modeling, S
 - Source: [UCI Machine Learning Repository - Predict Students' Dropout and Academic Success](https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+academic+success)
 - DOI: `10.24432/C5MC89`
 - Local data shape: 4,424 rows and 37 columns (`36 predictors + 1 target`)
+- Feature types (UCI): real, integer, and categorical variables
 - Problem type: Classification (binary formulation for HW1: `Dropout=1`, `Enrolled+Graduate=0`)
 - Data context (UCI): records from a higher education institution, merged from several disjoint databases at enrollment and after first/second semester performance.
 
@@ -90,7 +91,7 @@ Generated under `artifacts/`:
 - [x] `requirements.txt`
 - [x] `runtime.txt` (Streamlit Cloud Python version pin)
 - [x] `README.md`
-- [ ] Public deployed Streamlit URL (to add after deployment)
+- [x] Public deployed Streamlit URL: [https://studentdropout-prediction-ml.streamlit.app/](https://studentdropout-prediction-ml.streamlit.app/)
 
 ## 8. Reproducibility Notes
 - `random_state=42` is used for all stochastic operations.
