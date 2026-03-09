@@ -1985,7 +1985,7 @@ with tab4:
         step=0.01,
         help="If predicted dropout probability is above this threshold, class is set to Dropout (1).",
     )
-    auto_update = st.toggle("Auto-update prediction as inputs change", value=True)
+    auto_update = st.toggle("Auto-update prediction as inputs change", value=False)
     st.caption(
         f"Manual inputs are enabled for **{len(manual_input_features)} key features**; "
         "all other features are fixed at dataset-average values."
