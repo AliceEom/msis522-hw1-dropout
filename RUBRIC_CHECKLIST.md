@@ -37,7 +37,7 @@
 - [x] 2.6 Neural Network (Keras MLP)
   - Evidence: Keras model in `train_pipeline.py`, saved model `mlp_keras_model.keras`, `part2_mlp_training_history.png`
 - [x] 2.7 Comparison table + key metric bar chart + trade-off paragraph
-  - Evidence: `part2_model_comparison.csv`, `part2_f1_bar_comparison.png`, `model_comparison_paragraph.txt`, Tab 3
+  - Evidence: `part2_model_comparison.csv`, `part2_f1_bar_comparison.png`, Tab 3
 
 ## Part 3 (10)
 - [x] SHAP summary beeswarm

@@ -6,7 +6,6 @@ It follows the required structure: descriptive analytics, predictive modeling, S
 ## 1. Dataset
 - File: `data/studentdata_raw.csv`
 - Source: [UCI Machine Learning Repository - Predict Students' Dropout and Academic Success](https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+academic+success)
-- DOI: `10.24432/C5MC89`
 - Local data shape: 4,424 rows and 37 columns (`36 predictors + 1 target`)
 - Feature types (UCI): real, integer, and categorical variables
 - Problem type: Classification (binary formulation for HW1: `Dropout=1`, `Enrolled+Graduate=0`)

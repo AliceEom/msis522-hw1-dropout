@@ -793,107 +793,120 @@ tab1, tab2, tab3, tab4 = st.tabs(
 
 
 with tab1:
-    st.subheader("1.1 Dataset Introduction")
-    st.markdown("### Dataset and Prediction Task")
+    st.subheader("About This Project")
     st.markdown(
-        "**Overview:** In this individual project, I use machine learning to predict which university students are likely to drop out "
-        "based on academic, financial, and demographic information. "
-        "I use a dataset from the UCI Machine Learning Repository that was collected for a higher-education study in Portugal (2021), "
-        "covering students across multiple Portuguese universities. "
-        "My goal is to identify at-risk students early enough to support timely intervention."
-    )
-    st.markdown(
-        "I analyze the UCI student outcomes dataset with **4,424 rows and 37 columns** "
-        "(**36 predictors + 1 target**). "
-        "According to UCI documentation, the records come from a higher education institution and were "
-        "integrated from several disjoint databases that cover enrollment information and performance after the first two semesters. "
-        "The original outcome is 3-class (`Dropout`, `Enrolled`, `Graduate`), and I reformulate this task as binary: "
-        "**Dropout = 1** and **Non-dropout (Enrolled + Graduate) = 0**."
-    )
-    st.markdown("UCI feature types include **real, integer, and categorical** variables.")
-    st.markdown(
+        "This project asks a deceptively simple question: can we look at a student's background and early academic record "
+        "and predict, before it's too late, whether they're heading toward dropping out? "
+        "The data I'm working with comes from the UCI Machine Learning Repository, a publicly available dataset "
+        "collected at a higher education institution in Portugal. "
+        "It covers **4,424 students** across multiple degree programs, tracking each person from their enrollment paperwork "
+        "through their performance in the first two semesters. "
         "Source: [UCI Dataset Page](https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+academic+success)"
     )
     st.markdown(
-        "**What the dataset contains:** demographic profile (e.g., age, gender, nationality), "
-        "application/admission variables, academic progression variables (first/second semester performance), "
-        "financial indicators (tuition status, debtor status, scholarship), and family-background attributes, "
-        "including parents' academic background and occupation."
+        "The dataset has **36 features** per student, a mix of numeric (real and integer) and categorically-coded variables. "
+        "Some of those are things you'd expect: age, gender, which program they enrolled in, their admission grades. "
+        "Others are less obvious but turn out to be quite predictive: whether they had a scholarship, "
+        "whether they were behind on tuition, whether they had debt, "
+        "and how their parents' education level and occupation compared to other students. "
+        "Academic performance in the first semester is also recorded: approved units, grades, and whether they even attempted evaluations. "
+        "The original data labels each student with one of three outcomes: **Dropout**, **Enrolled** (still in progress), or **Graduate**. "
+        "For this project, I collapsed that into a simpler yes/no question: did this person drop out or not?"
     )
     if original_counts:
         st.markdown(
-            f"Original 3-class outcome distribution (before binary reformulation): "
-            f"**Dropout = {original_counts.get('Dropout', 'N/A')}**, "
-            f"**Enrolled = {original_counts.get('Enrolled', 'N/A')}**, "
-            f"**Graduate = {original_counts.get('Graduate', 'N/A')}**."
+            f"Of the {total_n} students in the dataset, "
+            f"**{original_counts.get('Dropout', 'N/A')} dropped out**, "
+            f"{original_counts.get('Enrolled', 'N/A')} were still enrolled at the time data was collected, "
+            f"and {original_counts.get('Graduate', 'N/A')} had graduated. "
+            f"That puts the overall dropout rate at roughly **{eda_highlights['dropout_rate']:.1%}**, "
+            "meaning about one in three students who started never finished."
         )
-
-    st.subheader("Data Cleaning and Preparation Notes")
     st.markdown(
-        "Because the raw CSV is semicolon-delimited, I first standardize column formatting and harmonize data types for modeling. "
-        f"My data-quality checks on this submission dataset show **{missing_total} missing values** and **{duplicate_rows} duplicate rows**. "
-        "I convert categorical-style fields into model-ready numeric representations so each model can consume the same feature matrix consistently. "
-        "For prediction, I convert the original 3-class target into a binary early-warning target focused on dropout risk."
-    )
-    st.markdown(
-        "Original 3-class encoding used in exploratory steps: **Dropout = 0**, **Enrolled = 1**, **Graduate = 2**. "
-        "My final prediction target for modeling and deployment is: **Dropout = 1** vs **Non-dropout (Enrolled + Graduate) = 0**."
+        f"Data quality checks found **{missing_total} missing values** and **{duplicate_rows} duplicate rows** in this dataset, "
+        "so the records are clean and ready to use without any major preprocessing issues. "
+        "The final binary prediction target is: **Dropout = 1** vs **Non-dropout (Enrolled + Graduate) = 0**."
     )
 
     st.subheader("Why This Problem Matters")
     st.markdown(
-        "My core goal is to test whether machine learning can identify students at risk of dropping out "
-        "early enough to enable intervention and additional support."
+        "Dropout is one of those outcomes that's easy to observe after the fact and surprisingly hard to catch in advance. "
+        "By the time a student officially withdraws, they've usually been struggling for weeks or months, "
+        "missing classes, falling behind on assignments, quietly disengaging. "
+        "If a university could identify those students early, even just a few weeks into a semester, "
+        "they could reach out and offer support before things spiral. "
+        "That's the core promise of a dropout prediction model."
     )
     st.markdown(
-        "Student dropout is not only an academic KPI; it has direct implications for institutional planning, student support allocation, and equity outcomes. "
-        "A reliable early-warning model helps identify high-risk students before failure compounds, enabling targeted interventions where they matter most."
+        "The impact goes well beyond a single student. Universities have limited advising staff, limited financial aid budgets, "
+        "and limited capacity for one-on-one support. "
+        "A good prediction model helps those resources go to the right people at the right time, "
+        "instead of spreading thinly across everyone or, even worse, going to the students who are most vocal rather than most at risk. "
+        "Research consistently shows that retaining a current student is far less expensive than recruiting a new one, "
+        "so early intervention also makes sense from a pure resource-allocation standpoint."
     )
     st.markdown(
-        "From an operations and business perspective, this supports advisor workload triage, retention-oriented scholarship policy, "
-        "tuition-risk monitoring, and better allocation of limited student-success resources."
+        "There's also an equity angle. Dropout risk isn't distributed evenly. "
+        "Students who are older, financially stressed, or from less-advantaged backgrounds tend to drop out at higher rates. "
+        "A model that surfaces those patterns explicitly can help institutions direct support more fairly, "
+        "rather than relying on which students are most visible or most proactive about asking for help."
     )
 
-    st.subheader("Approach and Key Findings")
+    st.subheader("What I Did and What I Found")
     st.markdown(
-        "My workflow follows an end-to-end data science process: descriptive analytics, train-only feature recheck, multi-model tuning, explainability, and deployment. "
-        "In my model comparison, tree ensembles provide the strongest nonlinear predictive power, while logistic regression remains useful for interpretable directional effects."
+        "The approach here is a full machine learning pipeline, from data exploration through model deployment. "
+        "I trained five different classification models on the same dataset: a logistic regression (baseline), "
+        "a single decision tree, a random forest, a gradient-boosted tree (LightGBM), and a small neural network. "
+        "Each model was tuned using cross-validation on the training data only, then evaluated on a held-out test set "
+        "that none of them saw during training. "
+        "I used F1 score as the main criterion for comparing models, since it balances catching real dropout cases "
+        "against generating too many false alarms."
     )
     st.markdown(
-        f"In this run, I observe an overall dropout prevalence of **{eda_highlights['dropout_rate']:.1%}**. "
-        f"The strongest early warning pattern I see is academic: average first-semester grade is **{eda_highlights['first_sem_dropout']:.2f}** in the dropout group "
-        f"versus **{eda_highlights['first_sem_non_dropout']:.2f}** in the non-dropout group."
+        f"The clearest finding in the data is that **first-semester academic performance is by far the strongest early signal**. "
+        f"Students who dropped out averaged a grade of **{eda_highlights['first_sem_dropout']:.2f}** in their first semester, "
+        f"compared to **{eda_highlights['first_sem_non_dropout']:.2f}** among students who stayed. "
+        "That gap shows up consistently across every analysis I ran, and it suggests that the window for intervention "
+        "is really the first few months of enrollment, not later when students are already disengaged. "
+        "Financial signals also played a meaningful role: students carrying debt or behind on tuition were substantially more likely to drop out "
+        "than peers without those pressures."
     )
     st.markdown(
-        "In this final app, I bring together Part 1 visuals and interpretations, Part 2 model metrics/ROC/hyperparameters, and Part 3 SHAP global + local explanations. "
-        "The interactive prediction section lets a user set key feature values and inspect both predicted risk and feature-level contribution via SHAP waterfall."
-    )
-    st.markdown(
-        f"In the current run, I select **{exec_best_f1_model}** as the best overall model for this business goal "
-        f"because it has the highest test-set **F1 ({float(exec_best_f1_row['f1']):.3f})**. "
-        f"The corresponding metrics are **Accuracy {float(exec_best_f1_row['accuracy']):.3f}**, "
-        f"**Precision {float(exec_best_f1_row['precision']):.3f}**, **Recall {float(exec_best_f1_row['recall']):.3f}**, "
-        f"and **AUC {float(exec_best_f1_row['auc']):.3f}**."
+        f"The best-performing model overall was **{exec_best_f1_model}**, "
+        f"with a test-set F1 of **{float(exec_best_f1_row['f1']):.3f}**, "
+        f"accuracy of **{float(exec_best_f1_row['accuracy']):.3f}**, "
+        f"and AUC of **{float(exec_best_f1_row['auc']):.3f}**. "
+        "The AUC in particular is worth unpacking for non-technical readers: it measures how well the model can rank students by risk level. "
+        "A score of 1.0 would mean perfect ranking; 0.5 would be no better than random. "
+        f"Getting above 0.90 means the model is genuinely good at separating high-risk students from low-risk ones across the whole population."
     )
     if str(exec_best_f1_row["model"]) != str(exec_best_auc_row["model"]):
         st.markdown(
-            f"Note on trade-off: **{exec_best_auc_model}** has the highest AUC "
-            f"(**{float(exec_best_auc_row['auc']):.3f}**), so it is slightly better at rank-ordering risk across thresholds, "
-            f"while **{exec_best_f1_model}** gives the best precision-recall balance at the chosen threshold."
+            f"One nuance worth noting: **{exec_best_auc_model}** had the highest AUC at **{float(exec_best_auc_row['auc']):.3f}**, "
+            f"which means it ranked students by risk slightly better across the board. "
+            f"**{exec_best_f1_model}** had the better precision-recall balance at the standard 50% probability cutoff. "
+            "Depending on what the institution wants to optimize for (a tight prioritized list or a broader safety net), "
+            "either could be the right operational choice."
         )
 
-    st.subheader("Executive Takeaways")
+    st.subheader("How to Use These Results")
     st.markdown(
-        "- **What I deliver:** I assign each student a dropout-risk probability and a clear reason summary (SHAP drivers).\n"
-        "- **What I find most actionable:** Early academic performance and financial stability are the strongest intervention signals.\n"
-        "- **How I would use this in practice:** I would prioritize high-risk students first, then match intervention type to the dominant driver (academic vs financial).\n"
-        "- **Why this matters operationally:** Keeping current students enrolled is usually more cost-effective than replacing lost enrollment, so targeted intervention has strong ROI potential.\n"
-        "- **How I keep this responsible:** I use predictions to allocate support (not to deny opportunity), and I monitor model performance and fairness over time."
+        "What this model produces for each student is a dropout risk score, a number between 0 and 1 "
+        "that reflects how likely that person is to drop out based on their profile. "
+        "Students scoring above a chosen threshold get flagged for outreach; students below it don't. "
+        "Crucially, the model also explains each individual prediction through a breakdown of which specific factors drove the score up or down. "
+        "That's what the SHAP analysis in the last tab shows: instead of a black-box result, "
+        "you get something like 'this student's risk is elevated mainly because of low first-semester grades and overdue tuition fees.'"
     )
     st.markdown(
-        "My practical rollout plan is straightforward: run scoring at the start of each term, triage students into risk tiers, "
-        "launch targeted interventions within the first weeks, and re-check outcomes monthly to adjust thresholds and support capacity. "
-        "In a real advising workflow, I would share these outputs with advisor teams and financial-aid teams together so academic and financial interventions can be coordinated."
+        "In a practical workflow, I'd suggest running predictions at the start of each semester, "
+        "sorting students into a few rough risk tiers, and routing them to the right kind of support based on what's actually driving their score. "
+        "Academic struggles call for tutoring, early faculty alerts, and mandatory check-ins. "
+        "Financial stress calls for payment plan counseling and emergency aid. "
+        "When both show up together, that's when coordinated outreach from both advising and financial aid is most important. "
+        "The model is meant to help prioritize who gets contacted first, "
+        "but the decision about what kind of help to offer still belongs to the people doing the advising. "
+        "And predictions should always be used to allocate support, not to exclude or penalize students."
     )
 
     ds = meta["dataset_stats"]
@@ -901,14 +914,18 @@ with tab1:
     st.dataframe(
         pd.DataFrame(
             {
-                "Rows": [ds["rows"]],
-                "Columns": [ds["columns"]],
-                "Dropout(1) Ratio": [round(ds["target_ratio_binary"]["1"], 4)],
-                "Non-dropout(0) Ratio": [round(ds["target_ratio_binary"]["0"], 4)],
+                "Students": [ds["rows"]],
+                "Original UCI Features": [ds["columns"] - 2],
+                "Dropout Rate": [round(ds["target_ratio_binary"]["1"], 4)],
+                "Non-dropout Rate": [round(ds["target_ratio_binary"]["0"], 4)],
             }
         ),
         hide_index=True,
-        width="stretch",
+        use_container_width=True,
+    )
+    st.caption(
+        "Original UCI dataset has 36 features plus 1 target column (37 total). "
+        "The pipeline adds 2 derived columns internally (Dropout_flag, Target_label), so the working dataframe is 39 columns."
     )
 
 
@@ -917,7 +934,7 @@ with tab2:
 
     st.subheader("1.2 Target Distribution")
 
-    st.image(str(FIGURES / "part1_target_distribution.png"), width="stretch")
+    st.image(str(FIGURES / "part1_target_distribution.png"), use_container_width=True)
     st.caption(captions["target_distribution"])
     target_counts_df = (
         df["Dropout_flag"]
@@ -969,19 +986,17 @@ with tab2:
             f"**Non-dropout (0) = original Enrolled + Graduate ({enrolled_n} + {graduate_n} = {non_dropout_n})**."
         )
     st.markdown(
-        "How this imbalance is handled in this project (simple workflow):"
-    )
-    st.markdown(
-        "1. **Keep class ratio stable in train/test** using stratified split.\n"
-        "2. **Penalize mistakes on the dropout class more** using class weights.\n"
-        "3. **Evaluate with F1 and AUC (not accuracy only)** so minority-class detection is reflected.\n"
-        "4. **Review precision/recall trade-off** to match intervention policy."
+        "Handling this imbalance carefully mattered throughout the project. "
+        "I used a stratified train/test split to preserve the same class ratio in both sets, "
+        "applied class weights during training so the models are penalized more heavily for missing actual dropout cases, "
+        "evaluated primarily on F1 and AUC rather than raw accuracy, "
+        "and reviewed the precision/recall tradeoff for each model to understand what kind of error each one makes."
     )
 
     st.subheader("1.3 Feature Distributions and Relationships")
     col_a, col_b = st.columns(2)
     with col_a:
-        st.image(str(FIGURES / "part1_admission_grade_boxplot.png"), width="stretch")
+        st.image(str(FIGURES / "part1_admission_grade_boxplot.png"), use_container_width=True)
         st.caption(captions["admission_grade_boxplot"])
         st.markdown(
             f"Mean admission grade is **{eda_highlights['admission_dropout']:.2f}** for dropout students "
@@ -997,7 +1012,7 @@ with tab2:
             "In plain terms, the two groups overlap, but the center of the dropout group is still shifted lower."
         )
     with col_b:
-        st.image(str(FIGURES / "part1_first_sem_grade_boxplot.png"), width="stretch")
+        st.image(str(FIGURES / "part1_first_sem_grade_boxplot.png"), use_container_width=True)
         st.caption(captions["first_sem_grade_boxplot"])
         st.markdown(
             f"Mean first-semester grade is **{eda_highlights['first_sem_dropout']:.2f}** for dropout students "
@@ -1165,25 +1180,31 @@ with tab2:
                 f"Strongest absolute correlation in the full numeric set: **{top_corr_a}** vs **{top_corr_b}** "
                 f"with **|r| = {top_corr_val:.3f}**."
             )
-    st.markdown("**Focused heatmap interpretation (5 practical takeaways):**")
+    st.markdown("**Reading the heatmap:**")
     st.markdown(
-        f"1. Academic continuity is strong across semesters: first-semester and second-semester grades move together "
-        f"(**r = {corr_first_second_grade:.3f}**), and approved units show a similar pattern (**r = {corr_first_second_approved:.3f}**).\n"
-        f"2. Within the focused predictors, application mode and age at enrollment are moderately aligned (**r = {corr_age_app_mode:.3f}**), "
-        "which suggests these two variables may carry partially overlapping entry-profile information.\n"
-        f"3. Second-semester performance has one of the strongest links with dropout "
-        f"(**grade r = {corr_target_second_grade:.3f}**, **approved-units r = {corr_target_second_approved:.3f}** with `Dropout_flag`): "
-        "the negative sign means higher grades are associated with lower dropout risk, so low semester performance is an early warning sign.\n"
-        f"4. Financial stress appears in the matrix too: tuition up-to-date is negatively related to dropout (**r = {corr_target_tuition:.3f}**), while debtor status is positively related (**r = {corr_target_debtor:.3f}**).\n"
-        f"5. Student context matters beyond grades: scholarship status is protective (**r = {corr_target_scholarship:.3f}**) and age at enrollment shows added risk pressure (**r = {corr_target_age:.3f}**, positive sign)."
+        f"Academic performance carries through across semesters: first-semester and second-semester grades are tightly linked "
+        f"(**r = {corr_first_second_grade:.3f}**), and the same pattern shows up for approved units (**r = {corr_first_second_approved:.3f}**). "
+        "That persistence is actually useful for intervention: a student struggling in semester one is likely to struggle again in semester two, "
+        "so acting early has real leverage. "
+        f"Application mode and age at enrollment also correlate moderately (**r = {corr_age_app_mode:.3f}**), "
+        "which makes sense since older students often come through different admission pathways. "
+        "This overlap is worth keeping in mind when selecting features, since the two variables might be partially redundant."
     )
-    st.markdown("**What this means for modeling:**")
     st.markdown(
-        "1. We prioritize academic-progress and financial-status variables as core predictors, because they carry the clearest risk signal in the correlation structure.\n"
-        "2. We avoid feeding too many near-duplicate academic columns at once; train-only recheck and correlation filtering keep the feature set stable and reduce multicollinearity risk.\n"
-        "3. We do not treat one high-correlation feature as the whole story. Final model choice still depends on out-of-sample F1/AUC and precision-recall trade-offs.\n"
-        "4. Correlation is only pairwise association, so we validate interactions with tree-based models and use SHAP to confirm how features contribute to individual predictions.\n"
-        "5. In practice, the strongest prediction signals here point to a combined intervention policy: monitor low semester performance together with tuition/debtor risk, then prioritize those students for early support."
+        f"Looking directly at the dropout target, second-semester performance has one of the strongest associations "
+        f"(grade r = {corr_target_second_grade:.3f}, approved-units r = {corr_target_second_approved:.3f}). "
+        "The negative sign is what you'd expect: higher grades mean lower dropout risk. "
+        f"Financial variables follow the same pattern: tuition up-to-date is negatively related to dropout (**r = {corr_target_tuition:.3f}**), "
+        f"debtor status is positively related (**r = {corr_target_debtor:.3f}**), "
+        f"and scholarship status is protective (**r = {corr_target_scholarship:.3f}**). "
+        f"Age at enrollment shows a small positive association with dropout risk (**r = {corr_target_age:.3f}**), "
+        "which may reflect the additional pressures older students often face, including work, family obligations, and less scheduling flexibility."
+    )
+    st.markdown(
+        "For modeling, the main takeaway is that academic-progress and financial-status variables carry the clearest signal, "
+        "while features with very high inter-correlations need to be filtered carefully to avoid multicollinearity. "
+        "Correlation alone is only pairwise association, so the tree-based models and SHAP analysis in later tabs "
+        "fill in the picture by capturing how multiple features interact together."
     )
 
 
@@ -1282,21 +1303,22 @@ with tab3:
         f"(current dataset: total `{total_n}`, train `{train_n}`, test `{test_n}`), performed before model tuning."
     )
     st.markdown(
-        "**Preprocessing used (and why):**\n"
-        "1. **Type handling/encoding:** predictors are loaded as numeric values; category-coded variables in this dataset are already integer-coded, so one-hot encoding was unnecessary for this pipeline.\n"
-        "2. **Missing values:** median imputation is applied to keep all rows and avoid dropping minority-risk cases.\n"
-        "3. **Scaling:** `StandardScaler` is applied for Logistic Regression and MLP (scale-sensitive models); tree-based models use imputation only.\n"
-        "4. **Leakage control:** feature recheck, CV tuning, and preprocessing fit happen on training data; test data is used only once for final evaluation."
+        "**Preprocessing:** All predictors in this dataset are already integer-coded, so no one-hot encoding was needed. "
+        "Median imputation was applied to handle any missing values without dropping rows. "
+        "`StandardScaler` was applied for Logistic Regression and MLP since those models are sensitive to feature scale; "
+        "tree-based models only use imputation. "
+        "All preprocessing was fit on training data only; test data is never seen until final evaluation."
     )
     st.markdown(
-        f"**Final selected X features:** `{', '.join(feature_names)}`"
+        f"**Final selected features ({len(feature_names)} total):** `{', '.join(feature_names)}`"
     )
-    st.markdown("**Why `n=10` final features? (Train-only recheck evidence)**")
+    st.markdown("**Why 10 features? (Train-only recheck)**")
     st.markdown(
-        "1. Start from the prior 18-feature baseline list.\n"
-        "2. Recheck only on the training split to prevent leakage: univariate logistic screening (`p < 0.05`) and train-only correlation filtering (`|r| > 0.75`).\n"
-        "3. Build a 10-feature candidate by ranking absolute logistic coefficients inside the rechecked 18-feature set.\n"
-        "4. Compare `18-feature` vs `10-feature` sets using training-only 5-fold Stratified CV with F1 as the selection metric."
+        "Starting from an initial 18-feature list, I rechecked features on the training split only: "
+        "first a univariate logistic screen (keeping features with `p < 0.05`), then correlation filtering (removing features with `|r| > 0.75` against already-selected ones). "
+        "That gave a rechecked 18-feature set. "
+        "I then built a 10-feature candidate by ranking absolute logistic coefficients within that set "
+        "and compared the two using 5-fold stratified CV with F1 as the criterion."
     )
     if not np.isnan(cv_f1_18) and not np.isnan(cv_f1_10):
         cv_diff = cv_f1_10 - cv_f1_18
@@ -1331,16 +1353,15 @@ with tab3:
 
     st.subheader("Imbalanced-Data Handling")
     st.markdown(
-        f"The binary target is imbalanced (**Dropout = {eda_highlights['dropout_rate']:.1%}**, "
-        f"**Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**). "
-        "Our handling strategy is practical and model-consistent: "
-        "(1) **stratified split** preserves the same class ratio in train and test; "
-        "(2) **class-weighted learning** penalizes dropout-class errors more (`class_weight='balanced'` for logistic/tree/forest/LightGBM, and computed class weights for MLP); "
-        "(3) **selection by F1 and AUC** keeps the focus on minority-class detection quality instead of accuracy-only ranking; "
-        "(4) **precision/recall trade-off review** is reported for each model so intervention policy can choose conservative vs aggressive alerting."
-    )
-    st.markdown(
-        "We intentionally did not rely on random oversampling in this submission, because weighted objectives already improved minority sensitivity while keeping the pipeline simple and reproducible."
+        f"The binary target is imbalanced: **Dropout = {eda_highlights['dropout_rate']:.1%}** vs "
+        f"**Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**. "
+        "To handle this, I used a stratified split to preserve the same class ratio in both train and test sets, "
+        "and applied class weights so each model is penalized more heavily for missing actual dropout cases "
+        "(`class_weight='balanced'` for logistic/tree/forest/LightGBM; computed class weights for MLP). "
+        "Model selection relied on F1 and AUC rather than accuracy alone, "
+        "and I reviewed precision/recall tradeoffs for each model to understand the practical implications. "
+        "Random oversampling was not used here because weighted objectives already improved minority-class sensitivity "
+        "without the added complexity."
     )
 
     st.subheader("2.2 Logistic Regression Baseline")
@@ -1348,8 +1369,8 @@ with tab3:
         "Classification baseline model is Logistic Regression. "
         "The test report includes Accuracy, Precision, Recall, F1, and AUC-ROC."
     )
-    st.dataframe(one_row_metrics("logistic", "Logistic Regression (Baseline)"), hide_index=True, width="stretch")
-    st.image(str(FIGURES / "part2_roc_logistic.png"), width="stretch")
+    st.dataframe(one_row_metrics("logistic", "Logistic Regression (Baseline)"), hide_index=True, use_container_width=True)
+    st.image(str(FIGURES / "part2_roc_logistic.png"), use_container_width=True)
     st.markdown(
         f"Result interpretation: Logistic baseline reaches **Accuracy {baseline_accuracy:.3f}**, **Precision {baseline_precision:.3f}**, "
         f"**Recall {baseline_recall:.3f}**, **F1 {baseline_f1:.3f}**, and **AUC {baseline_auc:.3f}** on the held-out test set."
@@ -1369,9 +1390,9 @@ with tab3:
         "Tuning grid: `max_depth = [3, 5, 7, 10]`, `min_samples_leaf = [5, 10, 20, 50]`, `scoring = F1`."
     )
     st.markdown(f"Best params: `{best_params.get('decision_tree', {})}`")
-    st.dataframe(one_row_metrics("decision_tree", "Decision Tree"), hide_index=True, width="stretch")
-    st.image(str(FIGURES / "part2_best_decision_tree.png"), width="stretch")
-    st.image(str(FIGURES / "part2_roc_decision_tree.png"), width="stretch")
+    st.dataframe(one_row_metrics("decision_tree", "Decision Tree"), hide_index=True, use_container_width=True)
+    st.image(str(FIGURES / "part2_best_decision_tree.png"), use_container_width=True)
+    st.image(str(FIGURES / "part2_roc_decision_tree.png"), use_container_width=True)
     st.markdown(
         f"Result interpretation: the best CV setting is `max_depth={dt_params.get('model__max_depth', 'N/A')}` "
         f"and `min_samples_leaf={dt_params.get('model__min_samples_leaf', 'N/A')}`. "
@@ -1402,9 +1423,9 @@ with tab3:
         low_share = float(low["dropout_share"])
         st.markdown("**What these splits mean in practice:**")
         st.markdown(
-            f"- Baseline dropout share at the root is **{root_share:.1%}**.\n"
-            f"- A high-risk leaf reaches **{high_share:.1%}** dropout share under this rule path: `{high['path']}`.\n"
-            f"- A low-risk leaf drops to **{low_share:.1%}** dropout share under this rule path: `{low['path']}`."
+            f"The overall dropout share at the root (before any splits) is **{root_share:.1%}**. "
+            f"Following the high-risk path (`{high['path']}`), the leaf-level dropout share reaches **{high_share:.1%}**. "
+            f"The low-risk path (`{low['path']}`) drops to just **{low_share:.1%}**."
         )
         st.markdown(
             f"Interpretation: the gap between high-risk and low-risk leaves is **{high_share - low_share:+.1%}**. "
@@ -1417,8 +1438,8 @@ with tab3:
         "Tuning grid: `n_estimators = [50, 100, 200]`, `max_depth = [3, 5, 8]`, `scoring = F1`."
     )
     st.markdown(f"Best params: `{best_params.get('random_forest', {})}`")
-    st.dataframe(one_row_metrics("random_forest", "Random Forest"), hide_index=True, width="stretch")
-    st.image(str(FIGURES / "part2_roc_random_forest.png"), width="stretch")
+    st.dataframe(one_row_metrics("random_forest", "Random Forest"), hide_index=True, use_container_width=True)
+    st.image(str(FIGURES / "part2_roc_random_forest.png"), use_container_width=True)
     st.markdown(
         "How best hyperparameters were found and reported: "
         "we run `GridSearchCV` on the training split only with `5-fold Stratified CV`, "
@@ -1455,8 +1476,8 @@ with tab3:
         "`n_estimators = [50, 100, 200]`, `max_depth = [3, 4, 5, 6]`, `learning_rate = [0.01, 0.05, 0.1]` with `scoring = F1`."
     )
     st.markdown(f"Best params: `{best_params.get('lightgbm', {})}`")
-    st.dataframe(one_row_metrics("lightgbm", "Boosted Tree (LightGBM)"), hide_index=True, width="stretch")
-    st.image(str(FIGURES / "part2_roc_lightgbm.png"), width="stretch")
+    st.dataframe(one_row_metrics("lightgbm", "Boosted Tree (LightGBM)"), hide_index=True, use_container_width=True)
+    st.image(str(FIGURES / "part2_roc_lightgbm.png"), use_container_width=True)
     st.markdown(
         "How best hyperparameters were found and reported: "
         "we run `GridSearchCV` on training data only with `5-fold Stratified CV`, "
@@ -1504,12 +1525,12 @@ with tab3:
         "The table below reports the same five metrics used for all classification models: "
         "**Accuracy, Precision, Recall, F1, and AUC-ROC**."
     )
-    st.dataframe(one_row_metrics("mlp_keras", "MLP (Keras)"), hide_index=True, width="stretch")
+    st.dataframe(one_row_metrics("mlp_keras", "MLP (Keras)"), hide_index=True, use_container_width=True)
     mlp_col1, mlp_col2 = st.columns(2)
     with mlp_col1:
-        st.image(str(FIGURES / "part2_mlp_training_history.png"), width="stretch")
+        st.image(str(FIGURES / "part2_mlp_training_history.png"), use_container_width=True)
     with mlp_col2:
-        st.image(str(FIGURES / "part2_roc_mlp_keras.png"), width="stretch")
+        st.image(str(FIGURES / "part2_roc_mlp_keras.png"), use_container_width=True)
     st.markdown(
         f"Result interpretation: on the test set, the MLP reaches **Accuracy {mlp_accuracy:.3f}**, "
         f"**Precision {mlp_precision:.3f}**, **Recall {mlp_recall:.3f}**, **F1 {mlp_f1:.3f}**, and **AUC {mlp_auc:.3f}**."
@@ -1523,7 +1544,7 @@ with tab3:
         )
 
     st.subheader("MLP Hyperparameter Tuning")
-    st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
+    st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), use_container_width=True)
     st.markdown(
         "Heatmap reading tip: each cell is one hyperparameter combination, and darker cells indicate higher validation F1."
     )
@@ -1536,13 +1557,12 @@ with tab3:
         "dropout `[0.0, 0.2]` = **12 candidate configurations**."
     )
     st.markdown(
-        "**How to read the values in this section:**\n"
-        "1. **Hidden Layers `(a, b)`** means two hidden layers: first has `a` neurons, second has `b` neurons.\n"
-        "2. **Learning Rate** controls update step size for Adam (`0.001` = faster updates, `0.0005` = slower but often steadier).\n"
-        "3. **Dropout** is the share of hidden units randomly turned off each training step (`0.2` means 20%).\n"
-        "4. **Validation F1** is the main tuning score here; higher is better because it balances precision and recall.\n"
-        "5. **Epochs Trained** shows how long the model actually trained before early stopping.\n"
-        "6. **Best Val Loss** is the lowest validation loss seen during training; lower means better fit on validation data."
+        "**How to read the table:** Hidden Layers `(a, b)` means two hidden layers where the first has `a` neurons and the second has `b`. "
+        "Learning Rate controls the Adam optimizer step size (`0.001` is faster, `0.0005` is slower but often steadier). "
+        "Dropout is the fraction of hidden units randomly turned off during each training step (0.2 means 20%). "
+        "Validation F1 is the tuning criterion (higher is better). "
+        "Epochs Trained shows how many training rounds ran before early stopping triggered. "
+        "Best Val Loss is the lowest validation loss observed during training; lower indicates a better fit."
     )
     if bonus_best_row is not None:
         st.markdown(
@@ -1554,7 +1574,7 @@ with tab3:
         "which suggests regularization helps generalization when predicting minority-risk students."
     )
     if not bonus_top3.empty:
-        st.dataframe(bonus_top3, hide_index=True, width="stretch")
+        st.dataframe(bonus_top3, hide_index=True, use_container_width=True)
 
     st.subheader("2.7 Model Comparison Summary")
     model_name_map = {
@@ -1581,7 +1601,7 @@ with tab3:
         .sort_values("F1", ascending=False)
         .reset_index(drop=True)
     )
-    st.dataframe(summary_df, hide_index=True, width="stretch")
+    st.dataframe(summary_df, hide_index=True, use_container_width=True)
     st.markdown("**Interactive metric explorer:**")
     selected_metric = st.selectbox(
         "Choose metric for interactive comparison",
@@ -1620,7 +1640,7 @@ with tab3:
     plt.tight_layout()
     st.pyplot(fig_f1, clear_figure=True)
     plt.close(fig_f1)
-    st.image(str(FIGURES / "part2_f1_bar_comparison.png"), width="stretch")
+    st.image(str(FIGURES / "part2_f1_bar_comparison.png"), use_container_width=True)
     st.caption("Saved Part 2 F1 comparison artifact from the training pipeline.")
 
     # Metric heatmap for compact side-by-side comparison.
@@ -1676,7 +1696,7 @@ with tab3:
     # Rank table by metric.
     rank_df = heat_df.rank(ascending=False, method="min").astype(int)
     rank_df = rank_df.rename(columns={c: f"{c} Rank" for c in rank_df.columns})
-    st.dataframe(rank_df.reset_index(), hide_index=True, width="stretch")
+    st.dataframe(rank_df.reset_index(), hide_index=True, use_container_width=True)
 
     # Detailed metric-by-metric interpretation.
     best_acc_row = summary_df.loc[summary_df["Accuracy"].idxmax()]
@@ -1685,70 +1705,54 @@ with tab3:
     best_f1_row = summary_df.loc[summary_df["F1"].idxmax()]
     best_auc_row = summary_df.loc[summary_df["AUC-ROC"].idxmax()]
 
+    f1_winner = str(best_f1_row["Model"])
+    auc_winner = str(best_auc_row["Model"])
+
     st.markdown(
-        f"1. **Accuracy perspective:** highest Accuracy is **{best_acc_row['Model']} ({best_acc_row['Accuracy']:.3f})**. "
-        "Accuracy reflects overall correct predictions, but in this imbalanced problem it can hide minority-class misses if used alone."
-    )
-    st.markdown(
-        f"2. **Precision perspective:** highest Precision is **{best_prec_row['Model']} ({best_prec_row['Precision']:.3f})**. "
-        "Higher precision means fewer false alarms among students flagged as high risk, which helps when intervention resources are limited."
-    )
-    st.markdown(
-        f"3. **Recall perspective:** highest Recall is **{best_rec_row['Model']} ({best_rec_row['Recall']:.3f})**. "
-        "Higher recall means more at-risk students are caught, which is valuable when missing a true dropout case is costly."
-    )
-    st.markdown(
-        f"4. **F1 perspective (primary metric):** best F1 is **{best_f1_row['Model']} ({best_f1_row['F1']:.3f})**. "
-        "F1 balances precision and recall, so this is the most policy-aligned score for the current class-imbalance setting."
-    )
-    st.markdown(
-        f"5. **AUC perspective:** highest AUC is **{best_auc_row['Model']} ({best_auc_row['AUC-ROC']:.3f})**. "
-        "AUC measures ranking quality across thresholds, so this is important for prioritizing students by risk score rather than one fixed cutoff."
+        f"Looking at each metric in turn: the highest accuracy goes to **{best_acc_row['Model']} ({best_acc_row['Accuracy']:.3f})**, "
+        "though accuracy alone can be misleading here because the classes are imbalanced; a model that just predicts 'not dropout' most of the time can still look reasonably accurate. "
+        f"For precision, **{best_prec_row['Model']} ({best_prec_row['Precision']:.3f})** is strongest, which matters when intervention resources are limited and false alarms are costly. "
+        f"For recall (catching actual dropout cases), **{best_rec_row['Model']} ({best_rec_row['Recall']:.3f})** leads, which is valuable when the cost of missing a truly at-risk student is high. "
+        f"F1 (the primary criterion here, since it balances precision and recall) is best for **{best_f1_row['Model']} ({best_f1_row['F1']:.3f})**. "
+        f"And **{best_auc_row['Model']} ({best_auc_row['AUC-ROC']:.3f})** leads on AUC, which measures how well the model rank-orders students by risk across all possible thresholds."
     )
     if baseline_label in heat_df.index:
         base = heat_df.loc[baseline_label]
         st.markdown(
-            f"6. **Baseline comparison summary:** vs Logistic baseline, best-F1 model (**{best_f1_row['Model']}**) changes "
+            f"Compared to the logistic baseline, the best-F1 model (**{best_f1_row['Model']}**) moves "
             f"Accuracy by **{best_f1_row['Accuracy'] - base['Accuracy']:+.3f}**, Precision by **{best_f1_row['Precision'] - base['Precision']:+.3f}**, "
             f"Recall by **{best_f1_row['Recall'] - base['Recall']:+.3f}**, F1 by **{best_f1_row['F1'] - base['F1']:+.3f}**, "
-            f"and AUC by **{best_f1_row['AUC-ROC'] - base['AUC-ROC']:+.3f}**."
+            f"and AUC by **{best_f1_row['AUC-ROC'] - base['AUC-ROC']:+.3f}**. "
+            "The default recommendation is to use the top-F1 model as the operational baseline, "
+            "then revisit the threshold monthly based on how many false alerts the advising team can actually handle."
         )
-    st.markdown(
-        "7. **Decision recommendation:** use the top F1 model as the default operational model, "
-        "but monitor precision/recall trade-off monthly and adjust threshold based on intervention capacity."
-    )
-    f1_winner = str(best_f1_row["Model"])
-    auc_winner = str(best_auc_row["Model"])
     surprise_line = (
-        f"It was interesting that **{auc_winner}** achieved the top AUC ({best_auc_row['AUC-ROC']:.3f}) while "
-        f"**{f1_winner}** still led F1 ({best_f1_row['F1']:.3f}), so ranking quality and fixed-threshold balance were not identical."
+        f"One interesting thing about this run: **{auc_winner}** had the top AUC ({best_auc_row['AUC-ROC']:.3f}) "
+        f"while **{f1_winner}** still led F1 ({best_f1_row['F1']:.3f}), meaning ranking quality and fixed-threshold balance diverged slightly."
         if f1_winner != auc_winner
-        else f"It was not very surprising because **{f1_winner}** led both F1 ({best_f1_row['F1']:.3f}) and AUC ({best_f1_row['AUC-ROC']:.3f})."
+        else f"Both F1 and AUC ended up pointing to the same model, **{f1_winner}**, which makes the choice fairly clear."
     )
     st.markdown(
-        f"Overall, the best-performing model in this run is **{f1_winner}** based on the primary F1 criterion. "
+        f"Overall, **{f1_winner}** is the best-performing model in this run by the primary F1 criterion. "
         f"{surprise_line} "
-        "The trade-off is practical: Logistic Regression and a single Decision Tree are easier to explain to non-technical stakeholders and train quickly, "
-        "but they usually give slightly weaker nonlinear performance. Random Forest / LightGBM typically improve risk discrimination, "
-        "while requiring longer tuning time and offering lower transparency than a single-tree rule set. "
-        "One result that stood out to me was the neural network (MLP) scoring lower than the best tree ensemble. "
-        "That surprised me because MLPs are often expected to capture complex patterns, but this dataset is a classic mixed tabular case: "
-        "many strong signals are threshold-like and interaction-heavy (for example, semester-grade cut points plus financial-status combinations such as debtor/tuition status). "
-        "Tree ensembles model those split-style patterns very directly, while MLP performance is more sensitive to architecture, regularization, and data scale. "
-        "The MLP is still the hardest to interpret directly."
+        "The broader tradeoff across models is worth understanding: logistic regression and a single decision tree are fast, transparent, and easy to explain to non-technical stakeholders, "
+        "but they give up some predictive power on nonlinear patterns. "
+        "Random Forest and LightGBM pick up those nonlinear interactions at the cost of interpretability and longer tuning time. "
+        "The neural network (MLP) was actually the one that surprised me most; I expected it to do better, "
+        "but this dataset has a lot of threshold-style interactions (e.g., specific grade cutpoints combined with financial stress flags) "
+        "that tree ensembles handle very naturally, while the MLP needs careful regularization and architecture choices to catch them. "
+        "The MLP is also the hardest of the five models to explain to someone who isn't technical."
     )
     st.subheader("Final Model Decision")
     st.markdown(
-        f"My final model choice for this project is **{f1_winner}**. "
-        f"It achieved the strongest held-out test **F1 ({best_f1_row['F1']:.3f})**, with solid **Precision ({best_f1_row['Precision']:.3f})**, "
-        f"**Recall ({best_f1_row['Recall']:.3f})**, and **AUC ({best_f1_row['AUC-ROC']:.3f})**."
-    )
-    st.markdown(
-        "This is the best fit for the current goal: identifying at-risk students early while keeping a practical balance between missed cases and false alerts."
+        f"My final model choice for this project is **{f1_winner}**, "
+        f"which achieved the best test-set F1 (**{best_f1_row['F1']:.3f}**) with solid precision (**{best_f1_row['Precision']:.3f}**), "
+        f"recall (**{best_f1_row['Recall']:.3f}**), and AUC (**{best_f1_row['AUC-ROC']:.3f}**). "
+        "It's the best fit for the goal of catching at-risk students while keeping false alerts at a manageable level."
     )
     if f1_winner != auc_winner:
         st.markdown(
-            f"For reference, **{auc_winner}** has the highest AUC, so it is also a strong alternative when pure ranking quality across thresholds is prioritized."
+            f"**{auc_winner}** is worth keeping as an alternative when the priority is pure risk-ranking quality across all possible thresholds, given that its AUC of {best_auc_row['AUC-ROC']:.3f} is the highest in the comparison."
         )
 
     st.subheader("Best Hyperparameters (All Models)")
@@ -1766,12 +1770,12 @@ with tab3:
     for col, (label, fn) in zip(row1, roc_items[:3]):
         with col:
             st.markdown(f"**{label}**")
-            st.image(str(FIGURES / fn), width="stretch")
+            st.image(str(FIGURES / fn), use_container_width=True)
     row2 = st.columns(2)
     for col, (label, fn) in zip(row2, roc_items[3:]):
         with col:
             st.markdown(f"**{label}**")
-            st.image(str(FIGURES / fn), width="stretch")
+            st.image(str(FIGURES / fn), use_container_width=True)
     st.markdown("**Interactive ROC explorer (model selector + hover):**")
     roc_model_selected = st.selectbox(
         "Choose model for interactive ROC view",
@@ -1832,7 +1836,7 @@ with tab4:
         "mlp_keras": "MLP (Keras)",
     }
 
-    st.subheader("3.1 Best-performing Tree-based Model Used for SHAP")
+    st.subheader("3.1 SHAP Analysis (Best-performing Tree-based Model)")
     tree_models = ["decision_tree", "random_forest", "lightgbm"]
     tree_perf = comparison_df[comparison_df["model"].isin(tree_models)].copy()
     tree_perf = tree_perf.sort_values("f1", ascending=False).reset_index(drop=True)
@@ -1846,7 +1850,7 @@ with tab4:
             "auc": "AUC-ROC",
         }
     )
-    st.dataframe(tree_perf_view, hide_index=True, width="stretch")
+    st.dataframe(tree_perf_view, hide_index=True, use_container_width=True)
 
     chosen_tree_row = tree_perf.loc[tree_perf["model"] == best_tree_model].iloc[0]
     best_auc_tree_row = tree_perf.sort_values("auc", ascending=False).iloc[0]
@@ -1861,21 +1865,21 @@ with tab4:
             f"(**{best_auc_tree_row['auc']:.3f}**), but SHAP base model selection follows the F1-first rule defined in the pipeline."
         )
     st.markdown(
-        "**SHAP workflow used in this project (simple view):**\n"
-        "1. Select the best tree-based model from the held-out test comparison.\n"
-        "2. Build a TreeExplainer on that trained model.\n"
-        "3. Compute SHAP values on test data to measure feature impact per student.\n"
-        "4. Summarize global patterns (beeswarm/bar) and one local case (waterfall)."
+        "The SHAP analysis starts by selecting the best tree-based model from the held-out test comparison, "
+        "then builds a TreeExplainer on top of it. "
+        "SHAP values are computed on the test data to measure how much each feature contributed to each individual prediction. "
+        "The output includes a global summary across all students (beeswarm and bar plots) "
+        "and one local case study (waterfall plot) to show how the contributions add up for a single high-risk student."
     )
 
     st.subheader("3.2 Global SHAP Plots")
-    st.image(str(FIGURES / "part3_shap_summary_beeswarm.png"), width="stretch")
+    st.image(str(FIGURES / "part3_shap_summary_beeswarm.png"), use_container_width=True)
     st.markdown(
         "**How to read the beeswarm plot:** each dot is one student. "
         "Dots on the right push the prediction toward dropout risk; dots on the left push it away. "
         "Color shows feature value level (high vs low), so you can see whether high values increase or decrease risk."
     )
-    st.image(str(FIGURES / "part3_shap_bar.png"), width="stretch")
+    st.image(str(FIGURES / "part3_shap_bar.png"), use_container_width=True)
     st.markdown(
         "**How to read the bar plot:** features are ranked by mean absolute SHAP value. "
         "Higher bars mean the feature changes predictions more on average across the population."
@@ -1890,63 +1894,68 @@ with tab4:
         st.dataframe(
             shap_rank_df[["Rank", "feature", "mean|SHAP|", "Direction"]].rename(columns={"feature": "Feature"}),
             hide_index=True,
-            width="stretch",
+            use_container_width=True,
         )
 
     st.subheader("3.3 SHAP Interpretation")
     top_feature_names = ", ".join([f"`{x['feature']}`" for x in shap_interpretation])
-    direction_sentence = "; ".join([f"`{x['feature']}` -> {x['direction']}" for x in shap_interpretation])
+    direction_sentence = ". ".join([f"`{x['feature']}`: {x['direction']}" for x in shap_interpretation])
     st.markdown(
-        f"1. **Which features have the strongest impact?** "
-        f"The top drivers in this run are {top_feature_names}. "
-        "These appear consistently in both the beeswarm and mean|SHAP| ranking."
+        f"**Which features matter most?** The top drivers in this run are {top_feature_names}. "
+        "These show up consistently in both the beeswarm and the mean |SHAP| bar ranking."
     )
     st.markdown(
-        f"2. **How do those features influence predictions?** "
-        f"{direction_sentence}. "
-        "In practice, this means the model combines academic progression and financial-status signals to move risk up or down."
+        f"**How do they influence predictions?** {direction_sentence}. "
+        "The model is essentially combining academic-performance signals with financial-stability signals to push risk up or down, "
+        "and when both are unfavorable at the same time, the combined effect is substantially larger than either alone."
     )
     st.markdown(
-        "3. **How can this help decision-makers?**\n"
-        "- **Deploy an early-warning workflow each term:** Generate high/medium/low-risk lists for advisors before withdrawal periods, so outreach starts early instead of after failure accumulates.\n"
-        "- **Prioritize limited advising capacity:** Use predicted risk plus SHAP drivers to decide who gets intensive support first and who gets lighter monitoring.\n"
-        "- **Route intervention by dominant risk driver:** Academic-risk students receive tutoring, study coaching, and mandatory early check-ins; financial-risk students receive payment-plan counseling, emergency aid, or micro-grants; mixed-risk students receive coordinated academic + financial support.\n"
-        "- **Act on first-semester signals quickly:** Low early grades are actionable warning signs, so faculty alerts and supplemental instruction can be triggered in the same term.\n"
-        "- **Strengthen financial-aid operations:** Tuition/debtor/scholarship signals can trigger proactive contact from financial-aid and student-accounts teams before students disengage.\n"
-        "- **Support segment-based planning:** Different groups need different responses (older or part-time students may need flexible schedules/hybrid options; program-specific risk may require targeted advising or curriculum redesign).\n"
-        "- **Improve cross-functional coordination:** Advisors, faculty, student-success services, financial-aid teams, and institutional research can use one risk framework and shared dashboard instead of isolated decisions.\n"
-        "- **Increase operational ROI:** Retaining current students is typically more cost-effective than replacing lost enrollment, so risk-tiered intervention improves how support budget and staff time are allocated.\n"
-        "- **Keep decisions transparent and auditable:** Local waterfall plots show exactly why one student's risk is high or low, which helps advisor communication and policy consistency.\n"
-        "- **Protect fairness and social impact goals:** Use model outputs for support allocation (not admissions exclusion), monitor fairness regularly, and reduce subjective bias through consistent data-driven triage."
+        "**What can decision-makers actually do with this?** "
+        "The most practical use is generating a risk-ranked list at the start of each term, before withdrawal deadlines hit. "
+        "Advisors can work through the high-risk tier first, using the SHAP drivers to understand what kind of support each student actually needs. "
+        "A student flagged mainly because of low first-semester grades needs a different response than one flagged primarily because of overdue tuition: "
+        "the former might need tutoring and academic coaching, while the latter needs payment-plan counseling or emergency aid referral. "
+        "When both signals appear together, that's when coordinated outreach from both advising and financial-aid teams matters most, "
+        "because those students are often facing a compounding problem that a single intervention won't fully address."
+    )
+    st.markdown(
+        "Faculty alerts for low first-semester grades can be triggered very early in the term, giving the institution more time to act. "
+        "Financial signals like tuition status and debtor flags can be monitored by financial-aid teams as a separate early-warning channel. "
+        "The SHAP waterfall plots make each individual prediction auditable: an advisor can show a student exactly what factors went into their risk score, "
+        "which makes the conversation more transparent and helps avoid the 'black box' feeling that often makes people skeptical of algorithmic tools. "
+        "Over time, these outputs can also feed into cross-functional planning: advisors, faculty, student-success services, "
+        "financial aid, and institutional research all working from the same risk framework rather than separate silos. "
+        "The model should always be used to direct support, not to exclude or penalize students, "
+        "and fairness monitoring across demographic groups should be built into any regular review cycle."
     )
 
     extra_insights: List[str] = []
     shap_feature_set = {x["feature"] for x in shap_interpretation}
     if "Curricular units 2nd sem (approved)" in shap_feature_set:
         extra_insights.append(
-            "Academic progression dominates risk separation: when approved units in semester 2 are low, SHAP contributions frequently shift predictions toward dropout."
+            "Academic progression is the dominant risk separator: when approved units in semester 2 drop, SHAP contributions shift toward dropout consistently across students."
         )
     if "Tuition fees up to date" in shap_feature_set:
         extra_insights.append(
-            "Tuition payment status behaves as a strong protective/risk switch: up-to-date payment tends to push risk down, while non-payment pushes it up."
+            "Tuition status behaves almost like a switch: being up to date pushes risk down, while not being up to date pushes it up, often quite sharply."
         )
     if "Curricular units 1st sem (grade)" in shap_feature_set:
         extra_insights.append(
-            "Early academic signal persists even after adding other variables: first-semester grade still contributes meaningful incremental information."
+            "First-semester grade still adds meaningful signal even after second-semester variables are in the model, because early performance leaves a lasting imprint on the prediction."
         )
     if "Age at enrollment" in shap_feature_set:
         extra_insights.append(
-            "Age effects are directional but not deterministic: older enrollment tends to increase predicted risk on average, but SHAP shows overlap across individuals."
+            "Age at enrollment has a directional effect on average (older tends to mean higher risk), but SHAP shows considerable variation across individuals; it's a signal, not a verdict."
         )
     if "Scholarship holder" in shap_feature_set:
         extra_insights.append(
-            "Scholarship status appears as a retention buffer in the model: scholarship holder values generally pull risk downward."
+            "Having a scholarship consistently pulls risk downward in the model, which aligns with the idea that financial security acts as a retention buffer."
         )
     if extra_insights:
-        st.markdown("**Additional SHAP insights:** " + " ".join(extra_insights))
+        st.markdown("**Additional patterns from SHAP:** " + " ".join(extra_insights))
 
     st.subheader("3.4 Reference Waterfall Example from Test Set")
-    st.image(str(FIGURES / "part3_shap_waterfall_example.png"), width="stretch")
+    st.image(str(FIGURES / "part3_shap_waterfall_example.png"), use_container_width=True)
     st.markdown(
         "This reference case shows one high-risk student from the test set. "
         "It demonstrates how multiple moderate risk factors can combine into a high final prediction, "
@@ -1963,10 +1972,10 @@ with tab4:
         protect_df = pd.DataFrame(reference_waterfall["top_protective"])
         if not risk_df.empty:
             st.markdown("**Top risk-increasing contributors in this case (largest positive SHAP):**")
-            st.dataframe(risk_df, hide_index=True, width="stretch")
+            st.dataframe(risk_df, hide_index=True, use_container_width=True)
         if not protect_df.empty:
             st.markdown("**Top risk-reducing contributors in this case (largest negative SHAP):**")
-            st.dataframe(protect_df, hide_index=True, width="stretch")
+            st.dataframe(protect_df, hide_index=True, use_container_width=True)
         st.markdown(
             "Decision-maker interpretation for this case: if risk-increasing drivers are mainly academic, "
             "prioritize tutoring/course-load intervention; if financial drivers dominate, prioritize payment counseling/support; "
@@ -2126,7 +2135,12 @@ with tab4:
         c_pos, c_neg = st.columns(2)
         with c_pos:
             st.markdown("**Top risk-increasing drivers for this custom input**")
-            st.dataframe(top_pos, hide_index=True, width="stretch")
+            st.dataframe(top_pos, hide_index=True, use_container_width=True)
         with c_neg:
             st.markdown("**Top risk-reducing drivers for this custom input**")
-            st.dataframe(top_neg, hide_index=True, width="stretch")
+            st.dataframe(top_neg, hide_index=True, use_container_width=True)
+    else:
+        st.info(
+            "No prediction has been run yet. Click **Run Prediction** (or turn on auto-update) to generate "
+            "the class/probability output and custom SHAP waterfall."
+        )
