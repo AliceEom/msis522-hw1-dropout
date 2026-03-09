@@ -726,8 +726,7 @@ exec_best_auc_model = exec_model_name_map.get(str(exec_best_auc_row["model"]), s
 
 st.title("Student Dropout Risk Modeling for Early Intervention")
 st.caption(
-    "Dataset: UCI Machine Learning Repository - Predict Students' Dropout and Academic Success "
-    "(DOI: 10.24432/C5MC89)"
+    "Dataset: UCI Machine Learning Repository - Predict Students' Dropout and Academic Success"
 )
 
 
