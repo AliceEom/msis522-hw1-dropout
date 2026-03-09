@@ -1113,7 +1113,10 @@ with tab3:
         "and then refit the best setting on the full training data."
     )
     st.markdown(
-        "After tuning, we evaluate once on the held-out test set and report the selected hyperparameters and final test metrics."
+        f"Reported tuning outcome: best hyperparameters are `n_estimators={rf_params.get('model__n_estimators', 'N/A')}` "
+        f"and `max_depth={rf_params.get('model__max_depth', 'N/A')}`. "
+        f"Final held-out test metrics are Accuracy **{rf_accuracy:.3f}**, Precision **{rf_precision:.3f}**, "
+        f"Recall **{rf_recall:.3f}**, F1 **{rf_f1:.3f}**, and AUC **{rf_auc:.3f}**."
     )
     st.markdown(
         f"Result interpretation: the selected setting is `n_estimators={rf_params.get('model__n_estimators', 'N/A')}` "
@@ -1148,7 +1151,11 @@ with tab3:
         "and refit the best LightGBM setting on the full training split."
     )
     st.markdown(
-        "After tuning, we evaluate once on the held-out test set and report the selected hyperparameters and final test metrics."
+        f"Reported tuning outcome: best hyperparameters are `n_estimators={lgbm_params.get('model__n_estimators', 'N/A')}`, "
+        f"`max_depth={lgbm_params.get('model__max_depth', 'N/A')}`, and "
+        f"`learning_rate={lgbm_params.get('model__learning_rate', 'N/A')}`. "
+        f"Final held-out test metrics are Accuracy **{lgbm_accuracy:.3f}**, Precision **{lgbm_precision:.3f}**, "
+        f"Recall **{lgbm_recall:.3f}**, F1 **{lgbm_f1:.3f}**, and AUC **{lgbm_auc:.3f}**."
     )
     st.markdown(
         f"Result interpretation: the selected setting is `n_estimators={lgbm_params.get('model__n_estimators', 'N/A')}`, "
