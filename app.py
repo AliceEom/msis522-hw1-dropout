@@ -869,6 +869,13 @@ with tab3:
     baseline_precision = float(metrics.get("logistic", {}).get("precision", np.nan))
     baseline_recall = float(metrics.get("logistic", {}).get("recall", np.nan))
     baseline_accuracy = float(metrics.get("logistic", {}).get("accuracy", np.nan))
+    dt_metrics = metrics.get("decision_tree", {})
+    dt_accuracy = float(dt_metrics.get("accuracy", np.nan))
+    dt_precision = float(dt_metrics.get("precision", np.nan))
+    dt_recall = float(dt_metrics.get("recall", np.nan))
+    dt_f1 = float(dt_metrics.get("f1", np.nan))
+    dt_auc = float(dt_metrics.get("auc", np.nan))
+    dt_params = best_params.get("decision_tree", {})
     best_row_by_f1 = comparison_df.sort_values("f1", ascending=False).iloc[0]
     best_model_name = str(best_row_by_f1["model"])
     best_model_f1 = float(best_row_by_f1["f1"])
@@ -992,6 +999,25 @@ with tab3:
         st.image(str(FIGURES / "part2_best_decision_tree.png"), width="stretch")
     with tree_col2:
         st.image(str(FIGURES / "part2_roc_decision_tree.png"), width="stretch")
+    st.markdown(
+        f"Result interpretation: the best CV setting is `max_depth={dt_params.get('model__max_depth', 'N/A')}` "
+        f"and `min_samples_leaf={dt_params.get('model__min_samples_leaf', 'N/A')}`. "
+        "This favors a relatively simple tree with larger leaves, which helps control overfitting."
+    )
+    st.markdown(
+        f"On the test set, Decision Tree reaches **Accuracy {dt_accuracy:.3f}**, **Precision {dt_precision:.3f}**, "
+        f"**Recall {dt_recall:.3f}**, **F1 {dt_f1:.3f}**, and **AUC {dt_auc:.3f}**."
+    )
+    if not np.isnan(baseline_f1):
+        st.markdown(
+            f"Baseline comparison: vs Logistic, Decision Tree improves F1 by **{dt_f1 - baseline_f1:+.3f}** "
+            f"and changes AUC by **{dt_auc - baseline_auc:+.3f}**. "
+            "In practical terms, it slightly improves minority-class capture while remaining interpretable through explicit split rules."
+        )
+    st.caption(
+        "Saved outputs for 2.3: best hyperparameters (`artifacts/metrics/part2_best_params.json`), "
+        "test metrics (`artifacts/metrics/part2_metrics.json`), and best-tree visualization (`artifacts/figures/part2_best_decision_tree.png`)."
+    )
 
     st.subheader("2.4 Random Forest (GridSearchCV, 5-fold)")
     st.markdown(
