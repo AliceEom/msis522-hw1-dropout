@@ -347,6 +347,23 @@ def load_comparison_df() -> pd.DataFrame:
     return pd.read_csv(METRICS / "part2_model_comparison.csv")
 
 
+@st.cache_data
+def load_bonus_mlp_tuning_df() -> pd.DataFrame:
+    path = METRICS / "bonus_mlp_tuning_results.csv"
+    if path.exists():
+        return pd.read_csv(path)
+    return pd.DataFrame(
+        columns=[
+            "hidden_layers",
+            "learning_rate",
+            "dropout_rate",
+            "val_f1",
+            "epochs_trained",
+            "best_val_loss",
+        ]
+    )
+
+
 @st.cache_resource
 def load_models() -> Dict[str, Any]:
     return {
@@ -467,6 +484,7 @@ meta = load_metadata()
 metrics = load_metrics()
 best_params = load_best_params()
 comparison_df = load_comparison_df()
+bonus_mlp_tuning_df = load_bonus_mlp_tuning_df()
 df = load_data()
 models = load_models()
 missing_total = int(df.isna().sum().sum())
@@ -890,6 +908,37 @@ with tab3:
     lgbm_f1 = float(lgbm_metrics.get("f1", np.nan))
     lgbm_auc = float(lgbm_metrics.get("auc", np.nan))
     lgbm_params = best_params.get("lightgbm", {})
+    mlp_metrics = metrics.get("mlp_keras", {})
+    mlp_accuracy = float(mlp_metrics.get("accuracy", np.nan))
+    mlp_precision = float(mlp_metrics.get("precision", np.nan))
+    mlp_recall = float(mlp_metrics.get("recall", np.nan))
+    mlp_f1 = float(mlp_metrics.get("f1", np.nan))
+    mlp_auc = float(mlp_metrics.get("auc", np.nan))
+    mlp_params = best_params.get("mlp_keras", {})
+    bonus_rows = int(len(bonus_mlp_tuning_df))
+    bonus_best_row = (
+        bonus_mlp_tuning_df.sort_values("val_f1", ascending=False).iloc[0]
+        if bonus_rows > 0 and "val_f1" in bonus_mlp_tuning_df.columns
+        else None
+    )
+    bonus_top3 = (
+        bonus_mlp_tuning_df.sort_values("val_f1", ascending=False).head(3).copy()
+        if bonus_rows > 0 and "val_f1" in bonus_mlp_tuning_df.columns
+        else pd.DataFrame()
+    )
+    if not bonus_top3.empty:
+        bonus_top3 = bonus_top3[
+            ["hidden_layers", "learning_rate", "dropout_rate", "val_f1", "epochs_trained", "best_val_loss"]
+        ].rename(
+            columns={
+                "hidden_layers": "Hidden Layers",
+                "learning_rate": "Learning Rate",
+                "dropout_rate": "Dropout",
+                "val_f1": "Validation F1",
+                "epochs_trained": "Epochs Trained",
+                "best_val_loss": "Best Val Loss",
+            }
+        )
     best_row_by_f1 = comparison_df.sort_values("f1", ascending=False).iloc[0]
     best_model_name = str(best_row_by_f1["model"])
     best_model_f1 = float(best_row_by_f1["f1"])
@@ -1154,19 +1203,94 @@ with tab3:
 
     st.subheader("2.6 Neural Network (Keras MLP)")
     st.markdown(
-        "Architecture: input layer -> at least two hidden ReLU layers -> sigmoid output. "
-        "Loss: `binary_crossentropy`; Optimizer: `Adam`; class weights applied for imbalance handling."
+        f"Framework: **Keras (TensorFlow backend)**. "
+        f"Input layer size matches the final feature dimension (`input_dim = {len(feature_names)}`). "
+        "Network design follows assignment minimums: two hidden ReLU layers plus a sigmoid output layer for binary classification."
     )
-    st.markdown(f"Best tuned MLP config: `{best_params.get('mlp_keras', {})}`")
+    st.markdown(
+        "Training setup: `binary_crossentropy` loss, `Adam` optimizer, class weights for imbalance handling, "
+        "early stopping on validation loss, and training-history tracking (loss + accuracy curves)."
+    )
+    st.markdown(f"Best tuned MLP config: `{mlp_params}`")
     st.dataframe(one_row_metrics("mlp_keras", "MLP (Keras)"), hide_index=True, width="stretch")
     mlp_col1, mlp_col2 = st.columns(2)
     with mlp_col1:
         st.image(str(FIGURES / "part2_mlp_training_history.png"), width="stretch")
     with mlp_col2:
         st.image(str(FIGURES / "part2_roc_mlp_keras.png"), width="stretch")
+    st.markdown(
+        f"Result interpretation: on the test set, the MLP reaches **Accuracy {mlp_accuracy:.3f}**, "
+        f"**Precision {mlp_precision:.3f}**, **Recall {mlp_recall:.3f}**, **F1 {mlp_f1:.3f}**, and **AUC {mlp_auc:.3f}**."
+    )
+    if not np.isnan(baseline_f1):
+        st.markdown(
+            f"Compared with Logistic baseline, MLP changes F1 by **{mlp_f1 - baseline_f1:+.3f}** "
+            f"and AUC by **{mlp_auc - baseline_auc:+.3f}**. "
+            "In this project, the MLP gives strong ranking quality but slightly lower F1 than the best tree models, "
+            "so it is useful as a nonlinear benchmark rather than the final deployment winner."
+        )
+    with st.expander("2.6 Implementation Code (train_pipeline.py)"):
+        st.code(
+            "model = build_keras_mlp(input_dim=X_train_scaled.shape[1], hidden_layers=(128, 64), dropout_rate=0.2, learning_rate=0.0005)\n"
+            "model.compile(optimizer=Adam(...), loss='binary_crossentropy', metrics=['accuracy', 'auc'])\n"
+            "history = model.fit(\n"
+            "    X_train_scaled, y_train,\n"
+            "    validation_split=0.20,\n"
+            "    epochs=60,\n"
+            "    batch_size=64,\n"
+            "    class_weight=class_weights,\n"
+            "    callbacks=[EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True)],\n"
+            ")\n"
+            "mlp_prob = model.predict(X_test_scaled).ravel()\n"
+            "mlp_pred = (mlp_prob >= 0.5).astype(int)\n"
+            "metrics_mlp = compute_metrics(y_test, mlp_pred, mlp_prob)\n"
+            "model_metrics['mlp_keras'] = metrics_mlp",
+            language="python",
+        )
+    st.caption(
+        "Saved outputs for 2.6: MLP metrics (`artifacts/metrics/part2_metrics.json`), tuned config (`artifacts/metrics/part2_best_params.json`), "
+        "training history (`artifacts/figures/part2_mlp_training_history.png`), ROC (`artifacts/figures/part2_roc_mlp_keras.png`), "
+        "and saved model files (`artifacts/models/mlp_keras_model.keras`, `artifacts/models/mlp_preprocess.joblib`)."
+    )
 
     st.subheader("Bonus +1: MLP Hyperparameter Tuning")
     st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
+    st.markdown(
+        "Bonus tuning approach: we performed a structured grid search over hidden-layer width patterns, "
+        "learning rates, and dropout rates using a train-only validation split and validation F1 as the selection criterion."
+    )
+    st.markdown(
+        "Search space: hidden layers `[(64,64), (128,128), (128,64)]` x learning rate `[0.001, 0.0005]` x "
+        "dropout `[0.0, 0.2]` = **12 candidate configurations**."
+    )
+    if bonus_best_row is not None:
+        st.markdown(
+            f"Best validation result: hidden layers **{bonus_best_row['hidden_layers']}**, learning rate **{float(bonus_best_row['learning_rate']):.4f}**, "
+            f"dropout **{float(bonus_best_row['dropout_rate']):.1f}**, validation F1 **{float(bonus_best_row['val_f1']):.3f}**."
+        )
+    st.markdown(
+        "Tuning insight: lower learning rate (`0.0005`) with moderate dropout (`0.2`) was more stable in this dataset, "
+        "which suggests regularization helps generalization when predicting minority-risk students."
+    )
+    if not bonus_top3.empty:
+        st.dataframe(bonus_top3, hide_index=True, width="stretch")
+    with st.expander("Bonus Implementation Code (train_pipeline.py)"):
+        st.code(
+            "for hidden in [(64,64), (128,128), (128,64)]:\n"
+            "    for lr in [0.001, 0.0005]:\n"
+            "        for dr in [0.0, 0.2]:\n"
+            "            model = build_keras_mlp(..., hidden_layers=hidden, learning_rate=lr, dropout_rate=dr)\n"
+            "            model.fit(X_sub, y_sub, validation_data=(X_val, y_val), class_weight=class_weights, callbacks=[EarlyStopping(...)])\n"
+            "            val_prob = model.predict(X_val).ravel()\n"
+            "            val_f1 = f1_score(y_val, (val_prob >= 0.5).astype(int))\n"
+            "            tuning_results.append({...})\n"
+            "pd.DataFrame(tuning_results).to_csv('artifacts/metrics/bonus_mlp_tuning_results.csv', index=False)",
+            language="python",
+        )
+    st.caption(
+        "Saved bonus outputs: tuning results table (`artifacts/metrics/bonus_mlp_tuning_results.csv`) and "
+        "tuning heatmap (`artifacts/figures/bonus_mlp_tuning_heatmap.png`)."
+    )
 
     st.subheader("2.7 Model Comparison Summary")
     st.dataframe(comparison_df, width="stretch")
