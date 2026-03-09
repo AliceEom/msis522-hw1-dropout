@@ -105,6 +105,33 @@ def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
     q_rate = tmp.groupby(q, observed=True)["Dropout_flag"].mean()
     out["dropout_q1"] = float(q_rate.get("Q1", np.nan))
     out["dropout_q4"] = float(q_rate.get("Q4", np.nan))
+
+    # Boxplot-style distribution diagnostics (median, IQR, 1.5*IQR outliers)
+    def add_box_stats(feature: str, prefix: str) -> None:
+        for cls, name in [(1, "dropout"), (0, "non_dropout")]:
+            s = tmp.loc[tmp["Dropout_flag"] == cls, feature].dropna()
+            if len(s) == 0:
+                out[f"{prefix}_{name}_median"] = float("nan")
+                out[f"{prefix}_{name}_iqr"] = float("nan")
+                out[f"{prefix}_{name}_outlier_count"] = 0.0
+                out[f"{prefix}_{name}_outlier_rate"] = float("nan")
+                continue
+
+            q1 = float(s.quantile(0.25))
+            med = float(s.quantile(0.50))
+            q3 = float(s.quantile(0.75))
+            iqr = q3 - q1
+            low = q1 - 1.5 * iqr
+            high = q3 + 1.5 * iqr
+            outliers = int(((s < low) | (s > high)).sum())
+
+            out[f"{prefix}_{name}_median"] = med
+            out[f"{prefix}_{name}_iqr"] = float(iqr)
+            out[f"{prefix}_{name}_outlier_count"] = float(outliers)
+            out[f"{prefix}_{name}_outlier_rate"] = float(outliers / len(s))
+
+    add_box_stats("Admission grade", "admission")
+    add_box_stats("Curricular units 1st sem (grade)", "first_sem")
     return out
 
 
@@ -443,6 +470,14 @@ with tab2:
             f"vs **{eda_highlights['admission_non_dropout']:.2f}** for non-dropout students. "
             "This is not the largest gap in the dataset, but it is directionally consistent with risk."
         )
+        st.markdown(
+            f"Distribution detail: median is **{eda_highlights['admission_dropout_median']:.2f}** (dropout) vs "
+            f"**{eda_highlights['admission_non_dropout_median']:.2f}** (non-dropout), and IQR is "
+            f"**{eda_highlights['admission_dropout_iqr']:.2f}** vs **{eda_highlights['admission_non_dropout_iqr']:.2f}**. "
+            f"Using the 1.5×IQR rule, outlier rates are **{eda_highlights['admission_dropout_outlier_rate']:.1%}** "
+            f"(dropout) and **{eda_highlights['admission_non_dropout_outlier_rate']:.1%}** (non-dropout), "
+            "which indicates overlap but still a meaningful central-shift toward lower admission readiness in the dropout group."
+        )
     with col_b:
         st.image(str(FIGURES / "part1_first_sem_grade_boxplot.png"), width="stretch")
         st.caption(captions["first_sem_grade_boxplot"])
@@ -450,6 +485,14 @@ with tab2:
             f"Mean first-semester grade is **{eda_highlights['first_sem_dropout']:.2f}** for dropout students "
             f"and **{eda_highlights['first_sem_non_dropout']:.2f}** for non-dropout students. "
             "This large separation supports using early academic performance as a primary intervention trigger."
+        )
+        st.markdown(
+            f"Distribution detail: median is **{eda_highlights['first_sem_dropout_median']:.2f}** (dropout) vs "
+            f"**{eda_highlights['first_sem_non_dropout_median']:.2f}** (non-dropout), with IQR "
+            f"**{eda_highlights['first_sem_dropout_iqr']:.2f}** vs **{eda_highlights['first_sem_non_dropout_iqr']:.2f}**. "
+            f"Outlier rates by the 1.5×IQR rule are **{eda_highlights['first_sem_dropout_outlier_rate']:.1%}** "
+            f"and **{eda_highlights['first_sem_non_dropout_outlier_rate']:.1%}** respectively. "
+            "The larger center gap than in admission scores suggests first-semester performance is a much sharper early-separation signal."
         )
 
     st.image(str(FIGURES / "part1_dropout_by_grade_quartile.png"), width="stretch")
