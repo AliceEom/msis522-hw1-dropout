@@ -430,6 +430,49 @@ def make_custom_waterfall(
     return fig
 
 
+def get_decision_tree_level_notes(tree_pipe: Any, feature_names: List[str], max_depth: int = 2) -> List[str]:
+    try:
+        model = tree_pipe.named_steps["model"]
+        tree = model.tree_
+    except Exception:
+        return []
+
+    classes = list(getattr(model, "classes_", [0, 1]))
+    dropout_idx = classes.index(1) if 1 in classes else min(1, len(classes) - 1)
+    leaf_flag = -2
+
+    notes: List[str] = []
+    queue: List[Tuple[int, int, str]] = [(0, 0, "Root node")]
+
+    while queue:
+        node_id, depth, label = queue.pop(0)
+        values = np.array(tree.value[node_id][0], dtype=float)
+        total = float(values.sum())
+        dropout_share = float(values[dropout_idx] / total) if total > 0 else float("nan")
+        n_samples = int(tree.n_node_samples[node_id])
+
+        feat_idx = int(tree.feature[node_id])
+        if feat_idx != leaf_flag:
+            feat_name = feature_names[feat_idx] if 0 <= feat_idx < len(feature_names) else f"feature_{feat_idx}"
+            threshold = float(tree.threshold[node_id])
+            notes.append(
+                f"{label} (depth {depth}): split on `{feat_name} <= {threshold:.2f}` "
+                f"(node dropout share: {dropout_share:.1%}, samples: {n_samples})."
+            )
+            if depth < max_depth:
+                queue.append((int(tree.children_left[node_id]), depth + 1, f"Left child from depth {depth}"))
+                queue.append((int(tree.children_right[node_id]), depth + 1, f"Right child from depth {depth}"))
+        else:
+            pred_idx = int(np.argmax(values)) if len(values) else 0
+            pred_class = classes[pred_idx] if pred_idx < len(classes) else pred_idx
+            notes.append(
+                f"{label} (depth {depth}) is a leaf: predicts `{pred_class}` "
+                f"(node dropout share: {dropout_share:.1%}, samples: {n_samples})."
+            )
+
+    return notes
+
+
 @st.cache_data
 def compute_shap_interpretation(
     _df: pd.DataFrame,
@@ -883,6 +926,7 @@ with tab3:
     dt_f1 = float(dt_metrics.get("f1", np.nan))
     dt_auc = float(dt_metrics.get("auc", np.nan))
     dt_params = best_params.get("decision_tree", {})
+    dt_level_notes = get_decision_tree_level_notes(models.get("decision_tree"), feature_names, max_depth=2)
     rf_metrics = metrics.get("random_forest", {})
     rf_accuracy = float(rf_metrics.get("accuracy", np.nan))
     rf_precision = float(rf_metrics.get("precision", np.nan))
@@ -1046,6 +1090,13 @@ with tab3:
             f"Baseline comparison: vs Logistic, Decision Tree improves F1 by **{dt_f1 - baseline_f1:+.3f}** "
             f"and changes AUC by **{dt_auc - baseline_auc:+.3f}**. "
             "In practical terms, it slightly improves minority-class capture while remaining interpretable through explicit split rules."
+        )
+    if dt_level_notes:
+        st.markdown("**Tree-structure interpretation (first levels):**")
+        st.markdown("\n".join([f"{i}. {line}" for i, line in enumerate(dt_level_notes, start=1)]))
+        st.markdown(
+            "Reading guide: depth 0 is the first split (root), depth 1 is the second layer, and depth 2 is the next layer. "
+            "Use these top levels as the model's main screening logic."
         )
 
     st.subheader("2.4 Random Forest (GridSearchCV, 5-fold)")
