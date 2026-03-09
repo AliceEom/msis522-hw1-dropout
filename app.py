@@ -872,7 +872,6 @@ with tab3:
     best_row_by_f1 = comparison_df.sort_values("f1", ascending=False).iloc[0]
     best_model_name = str(best_row_by_f1["model"])
     best_model_f1 = float(best_row_by_f1["f1"])
-    best_model_auc = float(best_row_by_f1["auc"])
 
     st.subheader("2.1 Data Preparation")
     st.markdown(
@@ -977,13 +976,10 @@ with tab3:
         "while AUC above 0.90 indicates good ranking ability across thresholds. "
         "Precision is lower than recall, which means the model is intentionally more sensitive (more alerts, including some false positives)."
     )
-    if not np.isnan(baseline_f1):
-        st.markdown(
-            f"Baseline role: every later model is judged against this reference. "
-            f"Current best F1 model is **{best_model_name}** with **F1 {best_model_f1:.3f}** "
-            f"(improvement **{best_model_f1 - baseline_f1:+.3f}** over Logistic) and **AUC {best_model_auc:.3f}** "
-            f"(delta **{best_model_auc - baseline_auc:+.3f}**)."
-        )
+    st.markdown(
+        "Baseline role: this logistic model defines the minimum benchmark. "
+        "Cross-model improvement is evaluated in Section 2.7 after all candidate models are presented."
+    )
 
     st.subheader("2.3 Decision Tree (GridSearchCV, 5-fold)")
     st.markdown(
