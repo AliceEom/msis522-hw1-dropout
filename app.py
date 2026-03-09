@@ -1230,10 +1230,26 @@ with tab4:
             f"Note: **{model_label.get(str(best_auc_tree_row['model']), str(best_auc_tree_row['model']))}** has the highest tree-model AUC "
             f"(**{best_auc_tree_row['auc']:.3f}**), but SHAP base model selection follows the F1-first rule defined in the pipeline."
         )
+    st.markdown(
+        "**SHAP workflow used in this project (simple view):**\n"
+        "1. Select the best tree-based model from the held-out test comparison.\n"
+        "2. Build a TreeExplainer on that trained model.\n"
+        "3. Compute SHAP values on test data to measure feature impact per student.\n"
+        "4. Summarize global patterns (beeswarm/bar) and one local case (waterfall)."
+    )
 
     st.subheader("3.2 Global SHAP Plots")
     st.image(str(FIGURES / "part3_shap_summary_beeswarm.png"), width="stretch")
+    st.markdown(
+        "**How to read the beeswarm plot:** each dot is one student. "
+        "Dots on the right push the prediction toward dropout risk; dots on the left push it away. "
+        "Color shows feature value level (high vs low), so you can see whether high values increase or decrease risk."
+    )
     st.image(str(FIGURES / "part3_shap_bar.png"), width="stretch")
+    st.markdown(
+        "**How to read the bar plot:** features are ranked by mean absolute SHAP value. "
+        "Higher bars mean the feature changes predictions more on average across the population."
+    )
 
     shap_rank_df = pd.DataFrame(shap_interpretation)
     if not shap_rank_df.empty:
@@ -1250,11 +1266,21 @@ with tab4:
     st.subheader("3.3 Required Interpretation")
     top_feature_names = ", ".join([f"`{x['feature']}`" for x in shap_interpretation])
     direction_sentence = "; ".join([f"`{x['feature']}` -> {x['direction']}" for x in shap_interpretation])
-    st.markdown(f"1. **Strongest impact features:** {top_feature_names}.")
-    st.markdown(f"2. **Direction of influence:** {direction_sentence}.")
     st.markdown(
-        "3. **Decision-use implication:** SHAP output supports operational triage: prioritize students when multiple risk drivers are active together "
-        "(low academic progression, tuition/debtor risk, and vulnerable profile factors), then align interventions by driver type."
+        f"1. **Which features have the strongest impact?** "
+        f"The top drivers in this run are {top_feature_names}. "
+        "These appear consistently in both the beeswarm and mean|SHAP| ranking."
+    )
+    st.markdown(
+        f"2. **How do those features influence predictions?** "
+        f"{direction_sentence}. "
+        "In practice, this means the model combines academic progression and financial-status signals to move risk up or down."
+    )
+    st.markdown(
+        "3. **How can this help decision-makers?**\n"
+        "1. Use predicted risk plus SHAP drivers to prioritize outreach lists.\n"
+        "2. Match intervention type to the dominant driver (academic support vs financial counseling vs combined support).\n"
+        "3. Use local waterfall explanations in advisor meetings to make model decisions transparent and actionable."
     )
 
     extra_insights: List[str] = []
@@ -1343,6 +1369,16 @@ with tab4:
 
         fig = make_custom_waterfall(shap_model, row_df, feature_names, models)
         st.pyplot(fig, clear_figure=True)
+        st.markdown(
+            "Waterfall reading tip: start at the baseline risk, then read bars from top to bottom. "
+            "Bars to the right increase dropout risk; bars to the left reduce risk. "
+            "The largest bars are the most actionable drivers for this student."
+        )
 
     st.subheader("3.5 Reference Waterfall Example from Test Set")
     st.image(str(FIGURES / "part3_shap_waterfall_example.png"), width="stretch")
+    st.markdown(
+        "This reference case shows one high-risk student from the test set. "
+        "It demonstrates how multiple moderate risk factors can combine into a high final prediction, "
+        "not only one single extreme variable."
+    )
