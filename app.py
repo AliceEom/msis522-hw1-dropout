@@ -426,7 +426,14 @@ with tab1:
 
 
 with tab2:
-    st.subheader("Part 1 Visual Story")
+    st.header("Part 1: Descriptive Analytics")
+    st.subheader("1.1 Dataset Introduction")
+    st.markdown(
+        "Dataset context, target definition, feature types, and data-cleaning summary are provided in **Tab 1 (Executive Summary)** "
+        "to match the assignment requirement for a clear dataset introduction."
+    )
+
+    st.subheader("1.2 Target Distribution")
 
     st.image(str(FIGURES / "part1_target_distribution.png"), width="stretch")
     st.caption(captions["target_distribution"])
@@ -461,6 +468,7 @@ with tab2:
         "4. **Review precision/recall trade-off** to match intervention policy."
     )
 
+    st.subheader("1.3 Feature Distributions and Relationships")
     col_a, col_b = st.columns(2)
     with col_a:
         st.image(str(FIGURES / "part1_admission_grade_boxplot.png"), width="stretch")
@@ -536,6 +544,7 @@ with tab2:
             "Students with scholarships show a substantially lower dropout rate, consistent with financial support acting as a retention buffer."
         )
 
+    st.subheader("1.4 Correlation Heatmap")
     st.image(str(FIGURES / "part1_correlation_heatmap.png"), width="stretch")
     st.caption(captions["correlation_heatmap"])
     if not np.isnan(top_corr_val):
