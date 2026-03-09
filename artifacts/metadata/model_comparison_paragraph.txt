@@ -1,0 +1,1 @@
+Across models, tree ensembles capture nonlinear dropout patterns better than linear baselines, while logistic regression remains useful for interpretability through signed effects. The final recommendation balances F1/AUC performance with stakeholder explainability, and SHAP is used to show local and global impact directions.

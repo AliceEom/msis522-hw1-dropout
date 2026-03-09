@@ -1,0 +1,336 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/mplconfig_msis522_hw1_app")
+
+import joblib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import shap
+import streamlit as st
+import tensorflow as tf
+
+st.set_page_config(page_title="MSIS 522 HW1 - Dropout Workflow", layout="wide")
+
+ROOT = Path(__file__).resolve().parent
+ARTIFACTS = ROOT / "artifacts"
+FIGURES = ARTIFACTS / "figures"
+METRICS = ARTIFACTS / "metrics"
+MODELS = ARTIFACTS / "models"
+META = ARTIFACTS / "metadata"
+DATA = ROOT / "data" / "studentdata_raw.csv"
+
+
+@st.cache_data
+def load_data() -> pd.DataFrame:
+    df = pd.read_csv(DATA, sep=";", quoting=3)
+    df.columns = (
+        df.columns.astype(str)
+        .str.strip()
+        .str.replace('"', "", regex=False)
+        .str.replace("\t", "", regex=False)
+    )
+    df["Target"] = df["Target"].astype(str).str.strip()
+    df["Dropout_flag"] = (df["Target"] == "Dropout").astype(int)
+    return df
+
+
+@st.cache_data
+def load_metadata() -> Dict[str, Any]:
+    with (META / "project_metadata.json").open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@st.cache_data
+def load_metrics() -> Dict[str, Any]:
+    with (METRICS / "part2_metrics.json").open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@st.cache_data
+def load_best_params() -> Dict[str, Any]:
+    with (METRICS / "part2_best_params.json").open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@st.cache_data
+def load_comparison_df() -> pd.DataFrame:
+    return pd.read_csv(METRICS / "part2_model_comparison.csv")
+
+
+@st.cache_resource
+def load_models() -> Dict[str, Any]:
+    return {
+        "logistic": joblib.load(MODELS / "logistic_pipeline.joblib"),
+        "decision_tree": joblib.load(MODELS / "decision_tree_pipeline.joblib"),
+        "random_forest": joblib.load(MODELS / "random_forest_pipeline.joblib"),
+        "lightgbm": joblib.load(MODELS / "lightgbm_pipeline.joblib"),
+        "mlp_keras": tf.keras.models.load_model(MODELS / "mlp_keras_model.keras"),
+        "mlp_bundle": joblib.load(MODELS / "mlp_preprocess.joblib"),
+    }
+
+
+def extract_pos_class_shap(shap_values: Any, expected_value: Any) -> Tuple[np.ndarray, float]:
+    if isinstance(shap_values, list):
+        values = shap_values[1] if len(shap_values) > 1 else shap_values[0]
+        if isinstance(expected_value, (list, np.ndarray)):
+            base = float(np.array(expected_value).ravel()[min(1, len(np.array(expected_value).ravel()) - 1)])
+        else:
+            base = float(expected_value)
+        return np.array(values), base
+
+    values = np.array(shap_values)
+    if values.ndim == 3:
+        values = values[:, :, 1]
+
+    if isinstance(expected_value, (list, np.ndarray)):
+        base_arr = np.array(expected_value).ravel()
+        base = float(base_arr[min(1, len(base_arr) - 1)])
+    else:
+        base = float(expected_value)
+    return values, base
+
+
+def predict_with_model(
+    model_name: str,
+    row_df: pd.DataFrame,
+    feature_names: List[str],
+    models: Dict[str, Any],
+) -> Tuple[float, int]:
+    if model_name == "mlp_keras":
+        bundle = models["mlp_bundle"]
+        X = bundle["preprocess"].transform(row_df[feature_names])
+        prob = float(models["mlp_keras"].predict(X, verbose=0).ravel()[0])
+    else:
+        prob = float(models[model_name].predict_proba(row_df[feature_names])[:, 1][0])
+    pred = int(prob >= 0.5)
+    return prob, pred
+
+
+def make_custom_waterfall(
+    tree_model_name: str,
+    row_df: pd.DataFrame,
+    feature_names: List[str],
+    models: Dict[str, Any],
+) -> plt.Figure:
+    tree_pipe = models[tree_model_name]
+    X_trans = tree_pipe.named_steps["preprocess"].transform(row_df[feature_names])
+    X_trans_df = pd.DataFrame(X_trans, columns=feature_names)
+
+    tree_model = tree_pipe.named_steps["model"]
+    explainer = shap.TreeExplainer(tree_model)
+    shap_raw = explainer.shap_values(X_trans_df)
+    shap_values, shap_base = extract_pos_class_shap(shap_raw, explainer.expected_value)
+
+    explanation = shap.Explanation(
+        values=shap_values[0],
+        base_values=shap_base,
+        data=X_trans_df.iloc[0].values,
+        feature_names=feature_names,
+    )
+
+    fig = plt.figure(figsize=(8, 5.5))
+    shap.plots.waterfall(explanation, show=False, max_display=12)
+    plt.tight_layout()
+    return fig
+
+
+meta = load_metadata()
+metrics = load_metrics()
+best_params = load_best_params()
+comparison_df = load_comparison_df()
+df = load_data()
+models = load_models()
+
+feature_names = meta["feature_selection"]["final_features"]
+manual_input_features = meta.get("manual_input_features", [])
+feature_ranges = meta["feature_ranges"]
+feature_means = meta["feature_means"]
+best_tree_model = meta["best_tree_model_for_shap"]
+captions = meta["captions"]
+
+st.title("MSIS 522 HW1: End-to-End Data Science Workflow")
+st.caption("Dataset: UCI Student Dropout and Academic Success (binary dropout formulation)")
+
+
+tab1, tab2, tab3, tab4 = st.tabs(
+    [
+        "Executive Summary",
+        "Descriptive Analytics",
+        "Model Performance",
+        "Explainability & Interactive Prediction",
+    ]
+)
+
+
+with tab1:
+    st.subheader("Dataset and Prediction Task")
+    st.markdown(
+        "This project analyzes the UCI student outcomes dataset with **4,424 rows and 37 columns**. "
+        "The prediction target is reformulated as a binary task: **Dropout = 1** and **Non-dropout (Enrolled + Graduate) = 0**. "
+        "Features include application profile, prior qualification, demographics, tuition/payment status, and semester-level academic performance."
+    )
+
+    st.subheader("Why This Problem Matters")
+    st.markdown(
+        "Student dropout is not only an academic KPI; it has direct implications for institutional planning, student support allocation, and equity outcomes. "
+        "A reliable early-warning model helps identify high-risk students before failure compounds, enabling targeted interventions where they matter most."
+    )
+
+    st.subheader("Approach and Key Findings")
+    st.markdown(
+        "The workflow follows full-stack data science practice: descriptive analytics, train-only feature recheck, multi-model tuning, explainability, and deployment. "
+        "Model comparison shows that tree ensembles provide the strongest nonlinear predictive power, while logistic regression remains useful for interpretable directional effects."
+    )
+    st.markdown(
+        "The final app surfaces all required outputs: Part 1 visuals and interpretations, Part 2 metrics/ROC/hyperparameters, and Part 3 SHAP global + local explanations. "
+        "Interactive prediction allows a user to set key feature values and inspect both predicted risk and feature-level contribution via SHAP waterfall."
+    )
+
+    ds = meta["dataset_stats"]
+    st.subheader("Quick Dataset Stats")
+    st.dataframe(
+        pd.DataFrame(
+            {
+                "Rows": [ds["rows"]],
+                "Columns": [ds["columns"]],
+                "Dropout(1) Ratio": [round(ds["target_ratio_binary"]["1"], 4)],
+                "Non-dropout(0) Ratio": [round(ds["target_ratio_binary"]["0"], 4)],
+            }
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+
+
+with tab2:
+    st.subheader("Part 1 Visual Story")
+
+    st.image(str(FIGURES / "part1_target_distribution.png"), width="stretch")
+    st.caption(captions["target_distribution"])
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.image(str(FIGURES / "part1_admission_grade_boxplot.png"), width="stretch")
+        st.caption(captions["admission_grade_boxplot"])
+    with col_b:
+        st.image(str(FIGURES / "part1_first_sem_grade_boxplot.png"), width="stretch")
+        st.caption(captions["first_sem_grade_boxplot"])
+
+    st.image(str(FIGURES / "part1_dropout_by_grade_quartile.png"), width="stretch")
+    st.caption(captions["dropout_by_grade_quartile"])
+
+    st.image(str(FIGURES / "part1_correlation_heatmap.png"), width="stretch")
+    st.caption(captions["correlation_heatmap"])
+
+
+with tab3:
+    st.subheader("2.7 Model Comparison Summary")
+    st.dataframe(comparison_df, width="stretch")
+
+    st.image(str(FIGURES / "part2_f1_bar_comparison.png"), width="stretch")
+
+    st.subheader("Best Hyperparameters")
+    st.json(best_params)
+
+    st.subheader("ROC Curves (All Models)")
+    roc_cols = st.columns(2)
+    roc_files = [
+        "part2_roc_logistic.png",
+        "part2_roc_decision_tree.png",
+        "part2_roc_random_forest.png",
+        "part2_roc_lightgbm.png",
+        "part2_roc_mlp_keras.png",
+    ]
+    for i, fn in enumerate(roc_files):
+        with roc_cols[i % 2]:
+            st.image(str(FIGURES / fn), width="stretch")
+
+    st.subheader("Decision Tree Snapshot")
+    st.image(str(FIGURES / "part2_best_decision_tree.png"), width="stretch")
+
+    st.subheader("MLP Training History")
+    st.image(str(FIGURES / "part2_mlp_training_history.png"), width="stretch")
+
+    st.subheader("Bonus: MLP Tuning Visualization")
+    st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
+
+    comparison_paragraph = (META / "model_comparison_paragraph.txt").read_text(encoding="utf-8")
+    st.markdown(comparison_paragraph)
+
+
+with tab4:
+    st.subheader("SHAP Global Explanations")
+    st.image(str(FIGURES / "part3_shap_summary_beeswarm.png"), width="stretch")
+    st.image(str(FIGURES / "part3_shap_bar.png"), width="stretch")
+
+    st.markdown(
+        "**Interpretation guidance:** Features at the top of the SHAP ranking have the strongest average impact on risk scores. "
+        "Positive SHAP values push toward dropout, while negative values push toward non-dropout."
+    )
+
+    st.subheader("Interactive Prediction")
+    model_options = ["logistic", "decision_tree", "random_forest", "lightgbm", "mlp_keras"]
+    selected_model = st.selectbox("Select model for prediction", model_options, index=2)
+
+    input_values: Dict[str, float] = {}
+    for f in feature_names:
+        rng = feature_ranges[f]
+        f_min, f_max, f_med = rng["min"], rng["max"], rng["median"]
+
+        if f in manual_input_features:
+            # Binary-like fields as dropdowns for cleaner UX.
+            if f_min >= 0 and f_max <= 1:
+                input_values[f] = float(st.selectbox(f, options=[0, 1], index=int(round(f_med))))
+            else:
+                if float(f_min).is_integer() and float(f_max).is_integer() and (f_max - f_min) <= 200:
+                    input_values[f] = float(
+                        st.slider(
+                            f,
+                            min_value=int(f_min),
+                            max_value=int(f_max),
+                            value=int(round(f_med)),
+                            step=1,
+                        )
+                    )
+                else:
+                    input_values[f] = float(
+                        st.slider(
+                            f,
+                            min_value=float(f_min),
+                            max_value=float(f_max),
+                            value=float(f_med),
+                        )
+                    )
+        else:
+            input_values[f] = float(feature_means[f])
+
+    row_df = pd.DataFrame([input_values])
+
+    if st.button("Run Prediction", type="primary"):
+        prob, pred = predict_with_model(selected_model, row_df, feature_names, models)
+        st.success(
+            f"Predicted class: **{'Dropout (1)' if pred == 1 else 'Non-dropout (0)'}**  |  "
+            f"Predicted probability of dropout: **{prob:.4f}**"
+        )
+
+        if selected_model in {"decision_tree", "random_forest", "lightgbm"}:
+            shap_model = selected_model
+            st.info(f"SHAP waterfall is generated using the selected model: `{selected_model}`.")
+        else:
+            shap_model = best_tree_model
+            st.info(
+                f"Selected model `{selected_model}` is non-tree. For local explainability, waterfall is shown with best tree-based model `{best_tree_model}`."
+            )
+
+        fig = make_custom_waterfall(shap_model, row_df, feature_names, models)
+        st.pyplot(fig, clear_figure=True)
+
+    st.subheader("Reference Example from Test Set")
+    st.image(str(FIGURES / "part3_shap_waterfall_example.png"), width="stretch")
