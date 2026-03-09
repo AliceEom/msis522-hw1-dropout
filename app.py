@@ -119,6 +119,11 @@ def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
     out["dropout_scholar_1"] = float(sch_1.mean()) if len(sch_1) else float("nan")
     out["dropout_scholar_0"] = float(sch_0.mean()) if len(sch_0) else float("nan")
 
+    tuition_1 = tmp.loc[tmp["Tuition fees up to date"] == 1, "Dropout_flag"]
+    tuition_0 = tmp.loc[tmp["Tuition fees up to date"] == 0, "Dropout_flag"]
+    out["dropout_tuition_1"] = float(tuition_1.mean()) if len(tuition_1) else float("nan")
+    out["dropout_tuition_0"] = float(tuition_0.mean()) if len(tuition_0) else float("nan")
+
     out["admission_non_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 0, "Admission grade"].mean())
     out["admission_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 1, "Admission grade"].mean())
 
@@ -553,12 +558,13 @@ with tab2:
     st.markdown(
         f"Financial signals show a similar risk pattern: debtors have **{eda_highlights['dropout_debtor_1']:.1%}** dropout "
         f"vs **{eda_highlights['dropout_debtor_0']:.1%}** for non-debtors; scholarship holders have **{eda_highlights['dropout_scholar_1']:.1%}** "
-        f"vs **{eda_highlights['dropout_scholar_0']:.1%}** for non-holders. "
-        "These financial differences are visualized directly in the two charts right below."
+        f"vs **{eda_highlights['dropout_scholar_0']:.1%}** for non-holders; and students with tuition fees **not up to date** show "
+        f"**{eda_highlights['dropout_tuition_0']:.1%}** dropout vs **{eda_highlights['dropout_tuition_1']:.1%}** when fees are up to date. "
+        "These financial differences are visualized directly in the charts right below."
     )
 
     st.subheader("Additional Relationship Views")
-    col_c, col_d = st.columns(2)
+    col_c, col_d, col_e = st.columns(3)
     with col_c:
         fig_debtor = make_dropout_rate_figure(
             df=df,
@@ -584,6 +590,19 @@ with tab2:
         st.caption(
             "Scholarship support is associated with lower dropout risk. "
             "Students with scholarships show a substantially lower dropout rate, consistent with financial support acting as a retention buffer."
+        )
+    with col_e:
+        fig_tuition = make_dropout_rate_figure(
+            df=df,
+            feature="Tuition fees up to date",
+            labels={0: "Fees Not Up to Date", 1: "Fees Up to Date"},
+            title="Dropout Rate by Tuition Status",
+        )
+        st.pyplot(fig_tuition, clear_figure=True)
+        plt.close(fig_tuition)
+        st.caption(
+            "Tuition status is a strong risk separator. "
+            "Students with unpaid or overdue tuition show a much higher dropout rate, so payment-status monitoring can be used as an operational early-warning signal."
         )
 
     st.subheader("1.4 Correlation Heatmap")
