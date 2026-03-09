@@ -928,9 +928,14 @@ with tab3:
         "4. Compare `18-feature` vs `10-feature` sets using training-only 5-fold Stratified CV with F1 as the selection metric."
     )
     if not np.isnan(cv_f1_18) and not np.isnan(cv_f1_10):
+        cv_diff = cv_f1_10 - cv_f1_18
         st.markdown(
             f"CV result: **F1(18) = {cv_f1_18:.3f}** vs **F1(10) = {cv_f1_10:.3f}** "
-            f"(difference: **{cv_f1_10 - cv_f1_18:+.3f}** toward the selected set)."
+            f"(difference: **{cv_diff:+.3f}** toward the selected set)."
+        )
+        st.markdown(
+            f"Feature-set decision: the gap is small (**{cv_diff:+.3f}**), but by the predefined rule "
+            "we select the set with higher CV F1, so the **10-feature set is adopted as final**."
         )
     if feature_choice_logic:
         st.caption(f"Selection rule: {feature_choice_logic}")

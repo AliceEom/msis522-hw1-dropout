@@ -71,6 +71,8 @@ python3 train_pipeline.py
    - creates 18-feature set
    - creates 10-feature set and compares CV F1 (`5-fold`)
    - chooses final feature set by higher CV F1 (tie -> 18 features)
+   - current run result: `F1(18)=0.747`, `F1(10)=0.751`, difference `+0.003`
+   - decision statement: the difference is small (`+0.003`), but by rule we adopt the 10-feature set
 4. Trains/evaluates required models:
    - Logistic baseline
    - Decision Tree (GridSearchCV)
