@@ -655,6 +655,17 @@ original_counts = meta["dataset_stats"].get("target_counts_original", {})
 total_n = int(len(df))
 train_n = int(total_n * 0.70)
 test_n = total_n - train_n
+exec_model_name_map = {
+    "logistic": "Logistic Regression",
+    "decision_tree": "Decision Tree (CART)",
+    "random_forest": "Random Forest",
+    "lightgbm": "LightGBM (Boosted Tree)",
+    "mlp_keras": "MLP (Keras)",
+}
+exec_best_f1_row = comparison_df.sort_values("f1", ascending=False).iloc[0]
+exec_best_auc_row = comparison_df.sort_values("auc", ascending=False).iloc[0]
+exec_best_f1_model = exec_model_name_map.get(str(exec_best_f1_row["model"]), str(exec_best_f1_row["model"]))
+exec_best_auc_model = exec_model_name_map.get(str(exec_best_auc_row["model"]), str(exec_best_auc_row["model"]))
 
 st.title("Student Dropout Risk Modeling for Early Intervention")
 st.caption(
@@ -748,6 +759,32 @@ with tab1:
     st.markdown(
         "The final app brings together Part 1 visuals and interpretations, Part 2 model metrics/ROC/hyperparameters, and Part 3 SHAP global + local explanations. "
         "Interactive prediction allows a user to set key feature values and inspect both predicted risk and feature-level contribution via SHAP waterfall."
+    )
+    st.markdown(
+        f"In the current run, the best overall model for this business goal is **{exec_best_f1_model}** "
+        f"because it has the highest test-set **F1 ({float(exec_best_f1_row['f1']):.3f})**. "
+        f"Its companion metrics are **Accuracy {float(exec_best_f1_row['accuracy']):.3f}**, "
+        f"**Precision {float(exec_best_f1_row['precision']):.3f}**, **Recall {float(exec_best_f1_row['recall']):.3f}**, "
+        f"and **AUC {float(exec_best_f1_row['auc']):.3f}**."
+    )
+    if str(exec_best_f1_row["model"]) != str(exec_best_auc_row["model"]):
+        st.markdown(
+            f"Note on trade-off: **{exec_best_auc_model}** has the highest AUC "
+            f"(**{float(exec_best_auc_row['auc']):.3f}**), so it is slightly better at rank-ordering risk across thresholds, "
+            f"while **{exec_best_f1_model}** gives the best precision-recall balance at the chosen threshold."
+        )
+
+    st.subheader("Executive Takeaways (Plain Language)")
+    st.markdown(
+        "- **What this project does:** It gives each student a dropout-risk probability and a clear reason summary (SHAP drivers).\n"
+        "- **What stands out in the data:** Early academic performance and financial stability are the most actionable signals.\n"
+        "- **What this means for teams:** Advisors can focus first on high-risk students, then match support type to the main driver (academic vs financial).\n"
+        "- **Why this is useful operationally:** Retaining current students is usually more cost-effective than replacing lost enrollment, so targeted intervention has strong ROI potential.\n"
+        "- **How to use this responsibly:** Use predictions to allocate support (not to deny opportunity), and monitor model fairness and performance over time."
+    )
+    st.markdown(
+        "A practical rollout path is straightforward: run scoring at the start of each term, triage students into risk tiers, "
+        "launch targeted interventions within the first weeks, and re-check outcomes monthly to adjust thresholds and support capacity."
     )
 
     ds = meta["dataset_stats"]
