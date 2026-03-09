@@ -2058,23 +2058,32 @@ with tab4:
             alt.Chart(prob_df)
             .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
             .encode(
-                x=alt.X("Outcome:N", title=""),
-                y=alt.Y("Probability:Q", scale=alt.Scale(domain=[0, 1]), title="Probability"),
-                color=alt.Color("Outcome:N", legend=None, scale=alt.Scale(range=["#86b37b", "#d97373"])),
+                y=alt.Y("Outcome:N", title="", sort=["Dropout (1)", "Non-dropout (0)"]),
+                x=alt.X("Probability:Q", scale=alt.Scale(domain=[0, 1]), title="Probability"),
+                color=alt.Color("Outcome:N", legend=None, scale=alt.Scale(range=["#4c9f70", "#c44e52"])),
                 tooltip=[
                     alt.Tooltip("Outcome:N"),
                     alt.Tooltip("Probability:Q", format=".3f"),
                 ],
             )
         )
+        prob_text = (
+            alt.Chart(prob_df)
+            .mark_text(align="left", baseline="middle", dx=6, color="#222")
+            .encode(
+                y=alt.Y("Outcome:N", sort=["Dropout (1)", "Non-dropout (0)"]),
+                x=alt.X("Probability:Q"),
+                text=alt.Text("Probability:Q", format=".3f"),
+            )
+        )
         threshold_line = (
             alt.Chart(threshold_df)
             .mark_rule(color="black", strokeDash=[6, 4])
-            .encode(y=alt.Y("Threshold:Q"))
+            .encode(x=alt.X("Threshold:Q"))
         )
-        st.altair_chart((prob_chart + threshold_line).properties(height=290).interactive(), use_container_width=True)
+        st.altair_chart((prob_chart + threshold_line + prob_text).properties(height=220).interactive(), use_container_width=True)
         st.caption(
-            "Interactive probability chart: hover for exact values. The dashed line is the current decision threshold."
+            "Interactive probability chart: bars show each class probability, and the dashed vertical line is the decision threshold."
         )
 
         if selected_model in {"decision_tree", "random_forest", "lightgbm"}:
