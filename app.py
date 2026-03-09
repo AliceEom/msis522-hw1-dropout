@@ -540,8 +540,9 @@ captions = meta["captions"]
 top_corr_a, top_corr_b, top_corr_val = strongest_corr_pair(df, corr_columns)
 corr_first_second_grade = get_corr_value(corr_full, "Curricular units 1st sem (grade)", "Curricular units 2nd sem (grade)")
 corr_first_second_approved = get_corr_value(corr_full, "Curricular units 1st sem (approved)", "Curricular units 2nd sem (approved)")
-corr_parent_occ = get_corr_value(corr_full, "Mother's occupation", "Father's occupation")
+corr_age_app_mode = get_corr_value(corr_full, "Age at enrollment", "Application mode")
 corr_target_second_grade = get_corr_value(corr_full, "Curricular units 2nd sem (grade)", "Dropout_flag")
+corr_target_second_approved = get_corr_value(corr_full, "Curricular units 2nd sem (approved)", "Dropout_flag")
 corr_target_tuition = get_corr_value(corr_full, "Tuition fees up to date", "Dropout_flag")
 corr_target_debtor = get_corr_value(corr_full, "Debtor", "Dropout_flag")
 corr_target_scholarship = get_corr_value(corr_full, "Scholarship holder", "Dropout_flag")
@@ -876,12 +877,14 @@ with tab2:
                 f"Strongest absolute correlation in the full numeric set: **{top_corr_a}** vs **{top_corr_b}** "
                 f"with **|r| = {top_corr_val:.3f}**."
             )
-    st.markdown("**Heatmap interpretation (5 practical takeaways):**")
+    st.markdown("**Focused heatmap interpretation (5 practical takeaways):**")
     st.markdown(
         f"1. Academic continuity is strong across semesters: first-semester and second-semester grades move together "
         f"(**r = {corr_first_second_grade:.3f}**), and approved units show a similar pattern (**r = {corr_first_second_approved:.3f}**).\n"
-        f"2. Parent occupation fields are highly aligned (**r = {corr_parent_occ:.3f}**), which suggests these columns capture overlapping background signal.\n"
-        f"3. Second-semester grade has one of the strongest links with dropout (**r = {corr_target_second_grade:.3f}** with `Dropout_flag`): "
+        f"2. Within the focused predictors, application mode and age at enrollment are moderately aligned (**r = {corr_age_app_mode:.3f}**), "
+        "which suggests these two variables may carry partially overlapping entry-profile information.\n"
+        f"3. Second-semester performance has one of the strongest links with dropout "
+        f"(**grade r = {corr_target_second_grade:.3f}**, **approved-units r = {corr_target_second_approved:.3f}** with `Dropout_flag`): "
         "the negative sign means higher grades are associated with lower dropout risk, so low semester performance is an early warning sign.\n"
         f"4. Financial stress appears in the matrix too: tuition up-to-date is negatively related to dropout (**r = {corr_target_tuition:.3f}**), while debtor status is positively related (**r = {corr_target_debtor:.3f}**).\n"
         f"5. Student context matters beyond grades: scholarship status is protective (**r = {corr_target_scholarship:.3f}**) and age at enrollment shows added risk pressure (**r = {corr_target_age:.3f}**, positive sign)."
