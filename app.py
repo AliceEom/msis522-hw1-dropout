@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import textwrap
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -178,7 +179,7 @@ def make_full_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[str])
 def make_focused_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[str]) -> plt.Figure:
     corr = df[corr_cols].corr()
 
-    fig, ax = plt.subplots(figsize=(11, 8))
+    fig, ax = plt.subplots(figsize=(13, 9))
     sns.heatmap(
         corr,
         cmap="coolwarm",
@@ -190,8 +191,17 @@ def make_focused_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[st
         ax=ax,
     )
     ax.set_title("Focused Correlation Heatmap (Top Target-linked Variables)")
-    ax.tick_params(axis="x", labelrotation=45, labelsize=9)
-    ax.tick_params(axis="y", labelrotation=0, labelsize=9)
+    wrapped_x = [
+        textwrap.fill(str(lbl), width=16, break_long_words=False, break_on_hyphens=False)
+        for lbl in corr.columns
+    ]
+    wrapped_y = [
+        textwrap.fill(str(lbl), width=24, break_long_words=False, break_on_hyphens=False)
+        for lbl in corr.index
+    ]
+    ax.set_xticklabels(wrapped_x, rotation=0, fontsize=8, ha="center")
+    ax.set_yticklabels(wrapped_y, rotation=0, fontsize=8)
+    plt.subplots_adjust(bottom=0.22, left=0.26)
     plt.tight_layout()
     return fig
 
