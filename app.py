@@ -118,13 +118,14 @@ def make_grade_band_dropout_figure(df: pd.DataFrame) -> plt.Figure:
 def make_second_sem_violin_figure(df: pd.DataFrame) -> plt.Figure:
     tmp = df[["Dropout_flag", "Curricular units 2nd sem (grade)"]].dropna().copy()
     tmp["Outcome"] = tmp["Dropout_flag"].map({0: "Non-dropout", 1: "Dropout"})
+    order = ["Non-dropout", "Dropout"]
 
     fig, ax = plt.subplots(figsize=(8.4, 5.0))
     sns.violinplot(
         data=tmp,
         x="Outcome",
         y="Curricular units 2nd sem (grade)",
-        order=["Non-dropout", "Dropout"],
+        order=order,
         density_norm="area",
         inner="box",
         bw_adjust=1.0,
@@ -132,6 +133,12 @@ def make_second_sem_violin_figure(df: pd.DataFrame) -> plt.Figure:
         palette={"Non-dropout": "#4C78A8", "Dropout": "#F58518"},
         ax=ax,
     )
+    means = tmp.groupby("Outcome", observed=True)["Curricular units 2nd sem (grade)"].mean()
+    for xpos, grp in enumerate(order):
+        if grp in means.index and not np.isnan(float(means.loc[grp])):
+            y = float(means.loc[grp])
+            ax.scatter(xpos, y, s=45, c="black", zorder=5, marker="o")
+            ax.text(xpos + 0.04, y + 0.12, f"mean={y:.2f}", fontsize=9, color="black")
     ax.set_title("2nd-Semester Grade Distribution by Outcome (Violin Plot)")
     ax.set_xlabel("")
     ax.set_ylabel("2nd-Semester Grade")
@@ -617,7 +624,7 @@ with tab2:
     plt.close(fig_second_sem_violin)
     st.caption(
         "Violin plot of second-semester grades by outcome. "
-        "Each violin shows the full distribution shape for one group, and the inner box summarizes center and spread."
+        "Each violin shows the full distribution shape for one group, the inner box shows median/IQR, and the black dot marks the mean."
     )
     st.markdown(
         f"Second-semester results separate the groups very clearly: the mean is **{eda_highlights['second_sem_dropout']:.2f}** in the dropout group "
@@ -628,6 +635,11 @@ with tab2:
         f"The dropout violin is much wider near zero because **{eda_highlights['second_sem_dropout_zero_rate']:.1%}** of dropout students have a second-semester grade of 0, "
         f"compared with only **{eda_highlights['second_sem_non_dropout_zero_rate']:.1%}** in the non-dropout group. "
         f"This matches the center statistics (median **{eda_highlights['second_sem_dropout_median']:.2f}** vs **{eda_highlights['second_sem_non_dropout_median']:.2f}**)."
+    )
+    st.markdown(
+        "How to read violin width: a wider section means **more students are concentrated at that score range**. "
+        "So the wide lower part in the dropout violin means many dropout students are clustered at very low/zero grades, "
+        "while the non-dropout violin is widest around higher grades."
     )
     st.markdown(
         "Practical takeaway: this is not a small shift. "
