@@ -745,9 +745,10 @@ with tab2:
         f"1. Academic continuity is strong across semesters: first-semester and second-semester grades move together "
         f"(**r = {corr_first_second_grade:.3f}**), and approved units show a similar pattern (**r = {corr_first_second_approved:.3f}**).\n"
         f"2. Parent occupation fields are highly aligned (**r = {corr_parent_occ:.3f}**), which suggests these columns capture overlapping background signal.\n"
-        f"3. Second-semester grade has one of the strongest direct links with dropout (**r = {corr_target_second_grade:.3f}** with `Dropout_flag`), so low semester performance is an early warning sign.\n"
+        f"3. Second-semester grade has one of the strongest links with dropout (**r = {corr_target_second_grade:.3f}** with `Dropout_flag`): "
+        "the negative sign means higher grades are associated with lower dropout risk, so low semester performance is an early warning sign.\n"
         f"4. Financial stress appears in the matrix too: tuition up-to-date is negatively related to dropout (**r = {corr_target_tuition:.3f}**), while debtor status is positively related (**r = {corr_target_debtor:.3f}**).\n"
-        f"5. Student context matters beyond grades: scholarship status is protective (**r = {corr_target_scholarship:.3f}**) and age at enrollment shows added risk pressure (**r = {corr_target_age:.3f}**)."
+        f"5. Student context matters beyond grades: scholarship status is protective (**r = {corr_target_scholarship:.3f}**) and age at enrollment shows added risk pressure (**r = {corr_target_age:.3f}**, positive sign)."
     )
     st.markdown("**What this means for modeling:**")
     st.markdown(
