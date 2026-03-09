@@ -391,6 +391,7 @@ def predict_with_model(
     row_df: pd.DataFrame,
     feature_names: List[str],
     models: Dict[str, Any],
+    threshold: float = 0.5,
 ) -> Tuple[float, int]:
     if model_name == "mlp_keras":
         bundle = models["mlp_bundle"]
@@ -398,7 +399,7 @@ def predict_with_model(
         prob = float(models["mlp_keras"].predict(X, verbose=0).ravel()[0])
     else:
         prob = float(models[model_name].predict_proba(row_df[feature_names])[:, 1][0])
-    pred = int(prob >= 0.5)
+    pred = int(prob >= float(threshold))
     return prob, pred
 
 
@@ -428,6 +429,35 @@ def make_custom_waterfall(
     shap.plots.waterfall(explanation, show=False, max_display=12)
     plt.tight_layout()
     return fig
+
+
+def compute_custom_shap_contributions(
+    tree_model_name: str,
+    row_df: pd.DataFrame,
+    feature_names: List[str],
+    models: Dict[str, Any],
+    top_n: int = 5,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    tree_pipe = models[tree_model_name]
+    X_trans = tree_pipe.named_steps["preprocess"].transform(row_df[feature_names])
+    X_trans_df = pd.DataFrame(X_trans, columns=feature_names)
+
+    tree_model = tree_pipe.named_steps["model"]
+    explainer = shap.TreeExplainer(tree_model)
+    shap_raw = explainer.shap_values(X_trans_df)
+    shap_values, _ = extract_pos_class_shap(shap_raw, explainer.expected_value)
+    row_shap = np.array(shap_values[0], dtype=float)
+
+    contrib_df = pd.DataFrame(
+        {
+            "Feature": feature_names,
+            "Input Value": X_trans_df.iloc[0].values,
+            "SHAP Value": row_shap,
+        }
+    )
+    positive = contrib_df.sort_values("SHAP Value", ascending=False).head(top_n).copy()
+    negative = contrib_df.sort_values("SHAP Value", ascending=True).head(top_n).copy()
+    return positive, negative
 
 
 def get_decision_tree_level_notes(tree_pipe: Any, feature_names: List[str], max_depth: int = 2) -> List[str]:
@@ -1765,6 +1795,19 @@ with tab4:
     model_options = ["logistic", "decision_tree", "random_forest", "lightgbm", "mlp_keras"]
     default_idx = model_options.index(best_tree_model) if best_tree_model in model_options else 2
     selected_model = st.selectbox("Select model for prediction", model_options, index=default_idx)
+    prediction_threshold = st.slider(
+        "Classification threshold",
+        min_value=0.10,
+        max_value=0.90,
+        value=0.50,
+        step=0.01,
+        help="If predicted dropout probability is above this threshold, class is set to Dropout (1).",
+    )
+    auto_update = st.toggle("Auto-update prediction as inputs change", value=True)
+    st.caption(
+        f"Manual inputs are enabled for **{len(manual_input_features)} key features**; "
+        "all other features are fixed at dataset-average values."
+    )
 
     input_values: Dict[str, float] = {}
     for f in feature_names:
@@ -1800,11 +1843,55 @@ with tab4:
 
     row_df = pd.DataFrame([input_values])
 
-    if st.button("Run Prediction", type="primary"):
-        prob, pred = predict_with_model(selected_model, row_df, feature_names, models)
-        st.success(
-            f"Predicted class: **{'Dropout (1)' if pred == 1 else 'Non-dropout (0)'}**  |  "
-            f"Predicted probability of dropout: **{prob:.4f}**"
+    run_clicked = st.button("Run Prediction", type="primary")
+    if auto_update or run_clicked:
+        prob, pred = predict_with_model(
+            selected_model,
+            row_df,
+            feature_names,
+            models,
+            threshold=float(prediction_threshold),
+        )
+        pred_label = "Dropout (1)" if pred == 1 else "Non-dropout (0)"
+        st.markdown(
+            f"Predicted outcome: **{pred_label}** at threshold **{prediction_threshold:.2f}**."
+        )
+
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Dropout Probability", f"{prob:.1%}")
+        with m2:
+            st.metric("Non-dropout Probability", f"{1 - prob:.1%}")
+        with m3:
+            st.metric("Predicted Class", pred_label)
+
+        fig_prob, ax_prob = plt.subplots(figsize=(6.8, 3.3))
+        prob_df = pd.DataFrame(
+            {
+                "Outcome": ["Non-dropout (0)", "Dropout (1)"],
+                "Probability": [1 - prob, prob],
+            }
+        )
+        sns.barplot(data=prob_df, x="Outcome", y="Probability", palette=["#86b37b", "#d97373"], ax=ax_prob)
+        ax_prob.axhline(
+            float(prediction_threshold),
+            color="black",
+            linestyle="--",
+            linewidth=1.1,
+            label=f"Threshold = {prediction_threshold:.2f}",
+        )
+        for idx, val in enumerate(prob_df["Probability"].tolist()):
+            ax_prob.text(idx, float(val) + 0.015, f"{val:.3f}", ha="center", va="bottom", fontsize=9)
+        ax_prob.set_ylim(0, 1.05)
+        ax_prob.set_ylabel("Probability")
+        ax_prob.set_xlabel("")
+        ax_prob.legend(loc="upper right")
+        ax_prob.grid(axis="y", alpha=0.25)
+        plt.tight_layout()
+        st.pyplot(fig_prob, clear_figure=True)
+        plt.close(fig_prob)
+        st.caption(
+            "Interactive probability chart: bars update with your inputs, and the dashed line shows the current decision threshold."
         )
 
         if selected_model in {"decision_tree", "random_forest", "lightgbm"}:
@@ -1827,3 +1914,11 @@ with tab4:
             "Bars to the right increase dropout risk; bars to the left reduce risk. "
             "The largest bars are the most actionable drivers for this student."
         )
+        top_pos, top_neg = compute_custom_shap_contributions(shap_model, row_df, feature_names, models, top_n=5)
+        c_pos, c_neg = st.columns(2)
+        with c_pos:
+            st.markdown("**Top risk-increasing drivers for this custom input**")
+            st.dataframe(top_pos, hide_index=True, width="stretch")
+        with c_neg:
+            st.markdown("**Top risk-reducing drivers for this custom input**")
+            st.dataframe(top_neg, hide_index=True, width="stretch")
