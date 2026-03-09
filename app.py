@@ -201,6 +201,8 @@ def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
     sec_non_dropout = tmp.loc[tmp["Dropout_flag"] == 0, "Curricular units 2nd sem (grade)"].dropna()
     out["second_sem_dropout_zero_rate"] = float((sec_dropout == 0).mean()) if len(sec_dropout) else float("nan")
     out["second_sem_non_dropout_zero_rate"] = float((sec_non_dropout == 0).mean()) if len(sec_non_dropout) else float("nan")
+    out["second_sem_dropout_ge10_rate"] = float((sec_dropout >= 10).mean()) if len(sec_dropout) else float("nan")
+    out["second_sem_dropout_ge12_rate"] = float((sec_dropout >= 12).mean()) if len(sec_dropout) else float("nan")
 
     q = pd.qcut(
         tmp["Curricular units 1st sem (grade)"],
@@ -640,6 +642,13 @@ with tab2:
         "How to read violin width: a wider section means **more students are concentrated at that score range**. "
         "So the wide lower part in the dropout violin means many dropout students are clustered at very low/zero grades, "
         "while the non-dropout violin is widest around higher grades."
+    )
+    st.markdown(
+        f"Your observation about the upper side is also correct: the dropout violin has a visible shoulder in the 10-14 range. "
+        f"In this dataset, about **{eda_highlights['second_sem_dropout_ge10_rate']:.1%}** of dropout students are at **10+**, "
+        f"and **{eda_highlights['second_sem_dropout_ge12_rate']:.1%}** are at **12+**. "
+        "That means dropout risk is not explained by grades alone; a meaningful subgroup has decent grades but likely faces other pressures "
+        "(financial strain, attendance/engagement, or delayed administrative issues)."
     )
     st.markdown(
         "Practical takeaway: this is not a small shift. "
