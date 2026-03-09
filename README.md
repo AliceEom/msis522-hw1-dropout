@@ -13,6 +13,9 @@ It follows the required structure: descriptive analytics, predictive modeling, S
 - Data context (UCI): records from a higher education institution, merged from several disjoint databases at enrollment and after first/second semester performance.
 
 ## 2. Dataset Description for Report/Slides
+- Overview: This project predicts which university students are likely to drop out using academic, financial, and demographic data.
+- Source context: UCI Machine Learning Repository; records were collected for a higher-education study in Portugal (2021).
+- Goal: test whether machine learning can identify at-risk students early enough to support timely intervention.
 - The dataset includes **4,424 students** and **36 predictive features** covering demographic, application, financial, and academic dimensions.
 - Example feature groups: age/gender/nationality, admission profile, first/second-semester grades and approvals, tuition/debtor/scholarship indicators, and family background.
 - The original UCI task is a 3-class outcome (`Dropout`, `Enrolled`, `Graduate`) with class imbalance; this HW1 implementation reformulates the target into binary dropout risk.

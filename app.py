@@ -286,6 +286,12 @@ tab1, tab2, tab3, tab4 = st.tabs(
 with tab1:
     st.subheader("Dataset and Prediction Task")
     st.markdown(
+        "**Overview:** This project uses machine learning to predict which university students are likely to drop out "
+        "based on academic, financial, and demographic information. "
+        "The dataset comes from the UCI Machine Learning Repository and was collected for a higher-education study in Portugal (2021). "
+        "The goal is to identify at-risk students early enough to support timely intervention."
+    )
+    st.markdown(
         "This project analyzes the UCI student outcomes dataset with **4,424 rows and 37 columns** "
         "(**36 predictors + 1 target**). "
         "According to UCI documentation, the records come from a higher education institution and were "
