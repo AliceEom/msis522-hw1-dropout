@@ -1301,6 +1301,11 @@ with tab3:
         "early stopping on validation loss, and training-history tracking (loss + accuracy curves)."
     )
     st.markdown(f"Best tuned MLP config: `{mlp_params}`")
+    st.markdown("**Test-set metrics report (held-out 30% test set):**")
+    st.markdown(
+        "The table below reports the same five metrics used for all classification models: "
+        "**Accuracy, Precision, Recall, F1, and AUC-ROC**."
+    )
     st.dataframe(one_row_metrics("mlp_keras", "MLP (Keras)"), hide_index=True, width="stretch")
     mlp_col1, mlp_col2 = st.columns(2)
     with mlp_col1:
