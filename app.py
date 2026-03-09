@@ -118,29 +118,24 @@ def make_grade_band_dropout_figure(df: pd.DataFrame) -> plt.Figure:
 def make_second_sem_violin_figure(df: pd.DataFrame) -> plt.Figure:
     tmp = df[["Dropout_flag", "Curricular units 2nd sem (grade)"]].dropna().copy()
     tmp["Outcome"] = tmp["Dropout_flag"].map({0: "Non-dropout", 1: "Dropout"})
-    tmp["Semester"] = "2nd Semester"
 
     fig, ax = plt.subplots(figsize=(8.4, 5.0))
     sns.violinplot(
         data=tmp,
-        x="Semester",
+        x="Outcome",
         y="Curricular units 2nd sem (grade)",
-        hue="Outcome",
-        hue_order=["Non-dropout", "Dropout"],
-        split=True,
-        density_norm="width",
-        common_norm=False,
-        inner="quartile",
-        bw_adjust=0.8,
+        order=["Non-dropout", "Dropout"],
+        density_norm="area",
+        inner="box",
+        bw_adjust=1.0,
         cut=0,
         palette={"Non-dropout": "#4C78A8", "Dropout": "#F58518"},
         ax=ax,
     )
-    ax.set_title("2nd-Semester Grade Distribution by Outcome (Split Violin)")
+    ax.set_title("2nd-Semester Grade Distribution by Outcome (Violin Plot)")
     ax.set_xlabel("")
     ax.set_ylabel("2nd-Semester Grade")
     ax.grid(axis="y", alpha=0.25)
-    ax.legend(title="", loc="upper right", frameon=False)
     plt.tight_layout()
     return fig
 
@@ -618,8 +613,8 @@ with tab2:
     st.pyplot(fig_second_sem_violin, clear_figure=True)
     plt.close(fig_second_sem_violin)
     st.caption(
-        "Split violin plot of second-semester grades by outcome. "
-        "Each side shows the density shape for one group, with quartile lines to summarize center and spread."
+        "Violin plot of second-semester grades by outcome. "
+        "Each violin shows the full distribution shape for one group, and the inner box summarizes center and spread."
     )
     st.markdown(
         f"Second-semester results separate the groups very clearly: the mean is **{eda_highlights['second_sem_dropout']:.2f}** in the dropout group "
@@ -627,7 +622,7 @@ with tab2:
         f"(a gap of **{eda_highlights['second_sem_mean_gap']:.2f}** points)."
     )
     st.markdown(
-        f"The left side is wide near zero because **{eda_highlights['second_sem_dropout_zero_rate']:.1%}** of dropout students have a second-semester grade of 0, "
+        f"The dropout violin is much wider near zero because **{eda_highlights['second_sem_dropout_zero_rate']:.1%}** of dropout students have a second-semester grade of 0, "
         f"compared with only **{eda_highlights['second_sem_non_dropout_zero_rate']:.1%}** in the non-dropout group. "
         f"This matches the center statistics (median **{eda_highlights['second_sem_dropout_median']:.2f}** vs **{eda_highlights['second_sem_non_dropout_median']:.2f}**)."
     )
