@@ -74,26 +74,6 @@ def get_top_target_corr_columns(corr_df: pd.DataFrame, target_col: str = "Dropou
     return top_cols + [target_col]
 
 
-def compact_heatmap_label(label: str) -> str:
-    short = str(label)
-    replacements = [
-        ("Curricular units", "CU"),
-        ("1st sem", "S1"),
-        ("2nd sem", "S2"),
-        ("without evaluations", "w/o eval"),
-        ("Tuition fees up to date", "Tuition up-to-date"),
-        ("Scholarship holder", "Scholarship"),
-        ("Age at enrollment", "Age"),
-        ("Application", "App"),
-        ("Previous qualification", "Prev qual"),
-        ("Marital status", "Marital"),
-        ("Dropout_flag", "Dropout"),
-    ]
-    for old, new in replacements:
-        short = short.replace(old, new)
-    return short
-
-
 def make_dropout_rate_figure(
     df: pd.DataFrame,
     feature: str,
@@ -199,7 +179,7 @@ def make_full_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[str])
 def make_focused_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[str]) -> plt.Figure:
     corr = df[corr_cols].corr()
 
-    fig, ax = plt.subplots(figsize=(14, 10))
+    fig, ax = plt.subplots(figsize=(16, 12))
     sns.heatmap(
         corr,
         cmap="coolwarm",
@@ -212,16 +192,16 @@ def make_focused_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[st
     )
     ax.set_title("Focused Correlation Heatmap (Top Target-linked Variables)")
     wrapped_x = [
-        textwrap.fill(compact_heatmap_label(lbl), width=12, break_long_words=False, break_on_hyphens=False)
+        textwrap.fill(str(lbl), width=16, break_long_words=False, break_on_hyphens=False)
         for lbl in corr.columns
     ]
     wrapped_y = [
-        textwrap.fill(compact_heatmap_label(lbl), width=20, break_long_words=False, break_on_hyphens=False)
+        textwrap.fill(str(lbl), width=24, break_long_words=False, break_on_hyphens=False)
         for lbl in corr.index
     ]
-    ax.set_xticklabels(wrapped_x, rotation=90, fontsize=7, ha="center", va="top")
+    ax.set_xticklabels(wrapped_x, rotation=0, fontsize=8, ha="center")
     ax.set_yticklabels(wrapped_y, rotation=0, fontsize=8)
-    plt.subplots_adjust(bottom=0.34, left=0.28)
+    plt.subplots_adjust(bottom=0.30, left=0.35)
     plt.tight_layout()
     return fig
 
