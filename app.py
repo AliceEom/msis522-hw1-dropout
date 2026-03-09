@@ -562,10 +562,17 @@ def compute_shap_interpretation(
     _df: pd.DataFrame,
     _feature_names: List[str],
     _best_tree_model: str,
+    _random_state: int = 42,
 ) -> List[Dict[str, Any]]:
     model_map = load_models()
     tree_pipe = model_map[_best_tree_model]
-    X = _df[_feature_names].copy()
+    _, test_df = train_test_split(
+        _df,
+        test_size=0.30,
+        stratify=_df["Dropout_flag"],
+        random_state=_random_state,
+    )
+    X = test_df[_feature_names].copy()
     X_trans = tree_pipe.named_steps["preprocess"].transform(X)
     X_trans_df = pd.DataFrame(X_trans, columns=_feature_names)
 
@@ -687,7 +694,12 @@ target_corr_abs = (
 )
 top_target_feature = str(target_corr_abs.index[0]) if len(target_corr_abs) else "N/A"
 top_target_corr = float(corr_full.loc[top_target_feature, "Dropout_flag"]) if len(target_corr_abs) else float("nan")
-shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
+shap_interpretation = compute_shap_interpretation(
+    df,
+    feature_names,
+    best_tree_model,
+    int(meta.get("random_state", 42)),
+)
 reference_waterfall = compute_reference_waterfall_details(
     df,
     feature_names,
