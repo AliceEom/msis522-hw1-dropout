@@ -1654,14 +1654,14 @@ with tab4:
     )
     st.markdown(
         "3. **How can this help decision-makers?**\n"
-        "1. **Operational triage (who to contact first):** Combine predicted risk and top SHAP drivers to generate high/medium/low-risk outreach lists each term. "
+        "- **Operational triage (who to contact first):** Combine predicted risk and top SHAP drivers to generate high/medium/low-risk outreach lists each term. "
         "This supports advisor triage when counseling capacity is limited.\n"
-        "2. **Intervention routing (what support to provide):** Match support to the dominant risk pattern. "
+        "- **Intervention routing (what support to provide):** Match support to the dominant risk pattern. "
         "Academic-risk students get tutoring/coaching and early check-ins; financial-risk students get payment-plan counseling, emergency aid, or micro-grants; "
         "combined-risk students receive coordinated academic + financial support.\n"
-        "3. **Business/retention impact (why this matters operationally):** Retaining current students is typically more cost-effective than replacing lost students. "
+        "- **Business/retention impact (why this matters operationally):** Retaining current students is typically more cost-effective than replacing lost students. "
         "Risk-tiered intervention helps allocate support budget and staff time where retention impact is expected to be highest.\n"
-        "4. **Transparency in advising meetings (how to explain decisions):** Use local waterfall plots to show exactly which factors pushed one student's risk up or down, "
+        "- **Transparency in advising meetings (how to explain decisions):** Use local waterfall plots to show exactly which factors pushed one student's risk up or down, "
         "so decisions are explainable, consistent across teams, and easier to audit."
     )
 
