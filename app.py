@@ -883,6 +883,13 @@ with tab3:
     rf_f1 = float(rf_metrics.get("f1", np.nan))
     rf_auc = float(rf_metrics.get("auc", np.nan))
     rf_params = best_params.get("random_forest", {})
+    lgbm_metrics = metrics.get("lightgbm", {})
+    lgbm_accuracy = float(lgbm_metrics.get("accuracy", np.nan))
+    lgbm_precision = float(lgbm_metrics.get("precision", np.nan))
+    lgbm_recall = float(lgbm_metrics.get("recall", np.nan))
+    lgbm_f1 = float(lgbm_metrics.get("f1", np.nan))
+    lgbm_auc = float(lgbm_metrics.get("auc", np.nan))
+    lgbm_params = best_params.get("lightgbm", {})
     best_row_by_f1 = comparison_df.sort_values("f1", ascending=False).iloc[0]
     best_model_name = str(best_row_by_f1["model"])
     best_model_f1 = float(best_row_by_f1["f1"])
@@ -1095,6 +1102,55 @@ with tab3:
     st.markdown(f"Best params: `{best_params.get('lightgbm', {})}`")
     st.dataframe(one_row_metrics("lightgbm", "Boosted Tree (LightGBM)"), hide_index=True, width="stretch")
     st.image(str(FIGURES / "part2_roc_lightgbm.png"), width="stretch")
+    st.markdown(
+        "How best hyperparameters were found and reported: "
+        "we run `GridSearchCV` on training data only with `5-fold Stratified CV`, "
+        "evaluate all `3 x 4 x 3 = 36` combinations by mean CV F1, "
+        "and refit the best LightGBM setting on the full training split."
+    )
+    st.markdown(
+        "After tuning, we evaluate once on the held-out test set and save outputs to "
+        "`artifacts/metrics/part2_best_params.json` (`lightgbm` key) and "
+        "`artifacts/metrics/part2_metrics.json` (`lightgbm` key)."
+    )
+    st.markdown(
+        f"Result interpretation: the selected setting is `n_estimators={lgbm_params.get('model__n_estimators', 'N/A')}`, "
+        f"`max_depth={lgbm_params.get('model__max_depth', 'N/A')}`, and "
+        f"`learning_rate={lgbm_params.get('model__learning_rate', 'N/A')}`. "
+        "This setup favors controlled boosting steps, so each tree adds signal without overreacting to noise."
+    )
+    st.markdown(
+        f"On the test set, LightGBM reaches **Accuracy {lgbm_accuracy:.3f}**, **Precision {lgbm_precision:.3f}**, "
+        f"**Recall {lgbm_recall:.3f}**, **F1 {lgbm_f1:.3f}**, and **AUC {lgbm_auc:.3f}**."
+    )
+    if not np.isnan(baseline_f1):
+        st.markdown(
+            f"Compared with the Logistic baseline, LightGBM changes F1 by **{lgbm_f1 - baseline_f1:+.3f}** "
+            f"and AUC by **{lgbm_auc - baseline_auc:+.3f}**. "
+            "The practical takeaway is simple: this model gives the strongest probability ranking in this project "
+            "(highest AUC), which helps prioritize intervention lists when resources are limited."
+        )
+    with st.expander("2.5 Implementation Code (train_pipeline.py)"):
+        st.code(
+            "lgbm_grid = {\n"
+            "    'model__n_estimators': [50, 100, 200],\n"
+            "    'model__max_depth': [3, 4, 5, 6],\n"
+            "    'model__learning_rate': [0.01, 0.05, 0.1],\n"
+            "}\n"
+            "gs_lgbm = GridSearchCV(lgbm_pipe, lgbm_grid, scoring='f1', cv=cv, n_jobs=1, refit=True)\n"
+            "gs_lgbm.fit(X_train, y_train)\n"
+            "best_lgbm = gs_lgbm.best_estimator_\n"
+            "metrics_lgbm, _, prob_lgbm = evaluate_sklearn_classifier(best_lgbm, X_test, y_test)\n"
+            "best_params['lightgbm'] = gs_lgbm.best_params_\n"
+            "model_metrics['lightgbm'] = metrics_lgbm\n"
+            "save_json(paths.metrics / 'part2_best_params.json', best_params)\n"
+            "save_json(paths.metrics / 'part2_metrics.json', model_metrics)",
+            language="python",
+        )
+    st.caption(
+        "Saved outputs for 2.5: best hyperparameters (`artifacts/metrics/part2_best_params.json`), "
+        "test metrics (`artifacts/metrics/part2_metrics.json`), and ROC (`artifacts/figures/part2_roc_lightgbm.png`)."
+    )
 
     st.subheader("2.6 Neural Network (Keras MLP)")
     st.markdown(
