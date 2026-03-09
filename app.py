@@ -190,7 +190,7 @@ def make_focused_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[st
         cmap="coolwarm",
         center=0,
         annot=True,
-        fmt=".2f",
+        fmt=".3f",
         annot_kws={"size": 7},
         cbar_kws={"shrink": 0.85},
         linewidths=0.2,
