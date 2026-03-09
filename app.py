@@ -333,6 +333,10 @@ with tab1:
 
     st.subheader("Why This Problem Matters")
     st.markdown(
+        "Core goal: determine whether machine learning models can effectively identify students at risk of dropping out "
+        "early enough to enable intervention and additional support."
+    )
+    st.markdown(
         "Student dropout is not only an academic KPI; it has direct implications for institutional planning, student support allocation, and equity outcomes. "
         "A reliable early-warning model helps identify high-risk students before failure compounds, enabling targeted interventions where they matter most."
     )
