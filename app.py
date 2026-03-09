@@ -1534,6 +1534,20 @@ with tab3:
         with col:
             st.markdown(f"**{label}**")
             st.image(str(FIGURES / fn), width="stretch")
+    auc_rank = summary_df[["Model", "AUC-ROC"]].sort_values("AUC-ROC", ascending=False).reset_index(drop=True)
+    if len(auc_rank) >= 2:
+        auc_gap = float(auc_rank.loc[0, "AUC-ROC"] - auc_rank.loc[1, "AUC-ROC"])
+        st.markdown(
+            f"ROC interpretation: the highest AUC is **{auc_rank.loc[0, 'Model']} ({auc_rank.loc[0, 'AUC-ROC']:.3f})**, "
+            f"followed by **{auc_rank.loc[1, 'Model']} ({auc_rank.loc[1, 'AUC-ROC']:.3f})** (gap **{auc_gap:.3f}**). "
+            "This means both models rank higher-risk students well, but the top model gives slightly cleaner separation across thresholds."
+        )
+    st.markdown(
+        "How to read these curves: lines closer to the top-left indicate stronger discrimination. "
+        "Curves closer to the diagonal indicate weaker ranking power. "
+        "If your intervention team prefers catching as many at-risk students as possible, use a lower threshold (higher recall, more false positives). "
+        "If resources are limited and false alerts are costly, raise the threshold to prioritize precision."
+    )
 
 
 with tab4:
