@@ -288,7 +288,8 @@ with tab1:
     st.markdown(
         "**Overview:** This project uses machine learning to predict which university students are likely to drop out "
         "based on academic, financial, and demographic information. "
-        "The dataset comes from the UCI Machine Learning Repository and was collected for a higher-education study in Portugal (2021). "
+        "The dataset comes from the UCI Machine Learning Repository and was collected for a higher-education study in Portugal (2021), "
+        "covering students across multiple Portuguese universities. "
         "The goal is to identify at-risk students early enough to support timely intervention."
     )
     st.markdown(
@@ -306,7 +307,8 @@ with tab1:
     st.markdown(
         "**What the dataset contains:** demographic profile (e.g., age, gender, nationality), "
         "application/admission variables, academic progression variables (first/second semester performance), "
-        "financial indicators (tuition status, debtor status, scholarship), and family-background attributes."
+        "financial indicators (tuition status, debtor status, scholarship), and family-background attributes, "
+        "including parents' academic background and occupation."
     )
     original_counts = meta["dataset_stats"].get("target_counts_original", {})
     if original_counts:
@@ -321,7 +323,12 @@ with tab1:
     st.markdown(
         "The raw CSV is semicolon-delimited, so the pipeline first standardizes column formatting and harmonizes types for modeling. "
         f"Data-quality checks on this submission dataset show **{missing_total} missing values** and **{duplicate_rows} duplicate rows**. "
+        "Categorical-style fields were converted into model-ready numeric representations to match algorithm input requirements. "
         "For prediction, the original 3-class target is converted to a binary early-warning target focused on dropout risk."
+    )
+    st.markdown(
+        "Original 3-class encoding used in exploratory steps: **Dropout = 0**, **Enrolled = 1**, **Graduate = 2**. "
+        "Final HW1 prediction target for modeling and deployment: **Dropout = 1** vs **Non-dropout (Enrolled + Graduate) = 0**."
     )
 
     st.subheader("Why This Problem Matters")
