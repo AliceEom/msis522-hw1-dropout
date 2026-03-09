@@ -513,6 +513,14 @@ with tab2:
         "So this is a risk-by-group view, not raw grade values on the y-axis."
     )
     st.markdown(
+        "Quartile definitions: **Q1 = lowest 25% grade group**, **Q2 = next 25%**, "
+        "**Q3 = next 25%**, **Q4 = highest 25% grade group**."
+    )
+    st.markdown(
+        "Actionable insight: because Q1 has the highest dropout rate, this group should receive first-priority support "
+        "(early advising outreach, tutoring, and financial-risk check-ins) before risk compounds."
+    )
+    st.markdown(
         f"Financial signals show a similar risk pattern: debtors have **{eda_highlights['dropout_debtor_1']:.1%}** dropout "
         f"vs **{eda_highlights['dropout_debtor_0']:.1%}** for non-debtors; scholarship holders have **{eda_highlights['dropout_scholar_1']:.1%}** "
         f"vs **{eda_highlights['dropout_scholar_0']:.1%}** for non-holders. "
