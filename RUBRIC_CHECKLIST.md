@@ -25,7 +25,7 @@
 
 ## Part 2 (45)
 - [x] 2.1 Data prep + split + preprocessing documentation
-  - Evidence: `train_pipeline.py` (70/30 split first, train-only feature recheck)
+  - Evidence: `train_pipeline.py` (explicit `X`/`y`, 70/30 split first, train-only feature recheck, preprocessing pipelines), `app.py` Tab 3 ("2.1 Data Preparation"), and `README.md` section "2.1 Data Preparation (Required)"
 - [x] 2.2 Logistic baseline + Acc/Prec/Rec/F1/AUC
   - Evidence: `part2_metrics.json` -> `logistic`
 - [x] 2.3 Decision Tree with 5-fold GridSearchCV

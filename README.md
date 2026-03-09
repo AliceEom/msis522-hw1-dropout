@@ -37,6 +37,23 @@ It follows the required structure: descriptive analytics, predictive modeling, S
 - SHAP required plots (beeswarm, bar, waterfall)
 - Streamlit app with 4 required tabs and interactive prediction
 
+### 2.1 Data Preparation (Required)
+- **Target (`y`)**: `Dropout_flag`
+  - `1 = Dropout`
+  - `0 = Non-dropout (Enrolled + Graduate)`
+- **Features (`X`)**: train-only rechecked final feature set (saved in `artifacts/metadata/project_metadata.json` under `feature_selection.final_features`).
+- **Split**: `train_test_split(..., test_size=0.30, stratify=y, random_state=42)`.
+- **Preprocessing**:
+  - Numeric conversion on load (`pd.to_numeric(..., errors='coerce')`).
+  - Median imputation for missing values (`SimpleImputer(strategy='median')`).
+  - `StandardScaler` for Logistic Regression and MLP only.
+  - Tree-based models (Decision Tree / Random Forest / LightGBM) use imputation without scaling.
+- **Why this setup**:
+  - Stratified split preserves class ratio.
+  - Median imputation is robust to skew and avoids dropping data.
+  - Scaling is applied only where model optimization depends on feature scale.
+  - All feature recheck/tuning/preprocessing fit steps are done on training data to prevent leakage.
+
 ## 4. Train Pipeline
 Main script: `train_pipeline.py`
 

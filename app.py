@@ -425,6 +425,9 @@ shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_m
 eda_highlights = compute_eda_highlights(df)
 tradeoff_text = build_model_tradeoff_text(comparison_df)
 original_counts = meta["dataset_stats"].get("target_counts_original", {})
+total_n = int(len(df))
+train_n = int(total_n * 0.70)
+test_n = total_n - train_n
 
 st.title("Student Dropout Risk Modeling for Early Intervention")
 st.caption(
@@ -738,8 +741,43 @@ with tab2:
 with tab3:
     st.subheader("2.1 Data Preparation")
     st.markdown(
-        "Target is encoded as `Dropout_flag` (1/0), then data is split with a stratified 70/30 train-test split (`random_state=42`). "
-        "Missing values are imputed; scaling is applied where needed (logistic/MLP), and all feature recheck and tuning decisions are performed on training data to prevent leakage."
+        f"**X and y definition:** `y = Dropout_flag` (1 = Dropout, 0 = Non-dropout) and "
+        f"`X = final train-only rechecked feature set` (`n={len(feature_names)}` features)."
+    )
+    st.markdown(
+        f"**Train/test split:** stratified **70/30** split with `random_state=42` "
+        f"(current dataset: total `{total_n}`, train `{train_n}`, test `{test_n}`), performed before model tuning."
+    )
+    st.markdown(
+        "**Preprocessing used (and why):**\n"
+        "1. **Type handling/encoding:** predictors are loaded as numeric values; category-coded variables in this dataset are already integer-coded, so one-hot encoding is not required.\n"
+        "2. **Missing values:** median imputation is applied to keep all rows and avoid dropping minority-risk cases.\n"
+        "3. **Scaling:** `StandardScaler` is applied for Logistic Regression and MLP (scale-sensitive models); tree-based models use imputation only.\n"
+        "4. **Leakage control:** feature recheck, CV tuning, and preprocessing fit happen on training data; test data is used only once for final evaluation."
+    )
+    with st.expander("2.1 Implementation Code (train_pipeline.py)"):
+        st.code(
+            "train_df, test_df = train_test_split(\n"
+            "    df,\n"
+            "    test_size=0.30,\n"
+            "    stratify=df['Dropout_flag'],\n"
+            "    random_state=RANDOM_STATE,\n"
+            ")\n\n"
+            "X_train = train_df[final_features].copy()\n"
+            "y_train = train_df['Dropout_flag'].astype(int).copy()\n"
+            "X_test = test_df[final_features].copy()\n"
+            "y_test = test_df['Dropout_flag'].astype(int).copy()\n\n"
+            "logistic_preprocess = Pipeline(steps=[\n"
+            "    ('imputer', SimpleImputer(strategy='median')),\n"
+            "    ('scaler', StandardScaler()),\n"
+            "])\n\n"
+            "tree_preprocess = Pipeline(steps=[\n"
+            "    ('imputer', SimpleImputer(strategy='median')),\n"
+            "])",
+            language="python",
+        )
+    st.markdown(
+        f"**Final selected X features:** `{', '.join(feature_names)}`"
     )
     st.markdown(
         "Tuning/evaluation protocol: Decision Tree, Random Forest, and LightGBM are tuned with **5-fold Stratified CV** "
