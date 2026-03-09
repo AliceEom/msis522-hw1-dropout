@@ -51,6 +51,27 @@ def strongest_corr_pair(df: pd.DataFrame, feature_names: List[str]) -> Tuple[str
     return str(corr.index[i]), str(corr.columns[j]), float(arr[i, j])
 
 
+def make_dropout_rate_figure(
+    df: pd.DataFrame,
+    feature: str,
+    labels: Dict[int, str],
+    title: str,
+) -> plt.Figure:
+    tmp = df[[feature, "Dropout_flag"]].dropna().copy()
+    rate = tmp.groupby(feature, observed=True)["Dropout_flag"].mean().reset_index()
+    rate["label"] = rate[feature].astype(int).map(labels).fillna(rate[feature].astype(str))
+
+    fig, ax = plt.subplots(figsize=(6.6, 4.2))
+    sns.barplot(data=rate, x="label", y="Dropout_flag", palette="Set2", ax=ax)
+    ax.set_title(title)
+    ax.set_xlabel("")
+    ax.set_ylabel("Dropout Rate")
+    ax.set_ylim(0, min(1.0, float(rate["Dropout_flag"].max()) + 0.15))
+    ax.grid(axis="y", alpha=0.25)
+    plt.tight_layout()
+    return fig
+
+
 @st.cache_data
 def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
     tmp = df.copy()
@@ -441,6 +462,35 @@ with tab2:
         f"vs **{eda_highlights['dropout_debtor_0']:.1%}** for non-debtors; scholarship holders have **{eda_highlights['dropout_scholar_1']:.1%}** "
         f"vs **{eda_highlights['dropout_scholar_0']:.1%}** for non-holders."
     )
+
+    st.subheader("Additional Relationship Views")
+    col_c, col_d = st.columns(2)
+    with col_c:
+        fig_debtor = make_dropout_rate_figure(
+            df=df,
+            feature="Debtor",
+            labels={0: "Non-debtor", 1: "Debtor"},
+            title="Dropout Rate by Debtor Status",
+        )
+        st.pyplot(fig_debtor, clear_figure=True)
+        plt.close(fig_debtor)
+        st.caption(
+            "Debtor status is strongly associated with dropout risk. "
+            "The debtor group shows a materially higher dropout rate, indicating that financial pressure is a practical early-warning signal for intervention."
+        )
+    with col_d:
+        fig_scholar = make_dropout_rate_figure(
+            df=df,
+            feature="Scholarship holder",
+            labels={0: "No Scholarship", 1: "Scholarship"},
+            title="Dropout Rate by Scholarship Status",
+        )
+        st.pyplot(fig_scholar, clear_figure=True)
+        plt.close(fig_scholar)
+        st.caption(
+            "Scholarship support is associated with lower dropout risk. "
+            "Students with scholarships show a substantially lower dropout rate, consistent with financial support acting as a retention buffer."
+        )
 
     st.image(str(FIGURES / "part1_correlation_heatmap.png"), width="stretch")
     st.caption(captions["correlation_heatmap"])
