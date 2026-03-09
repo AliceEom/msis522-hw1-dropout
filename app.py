@@ -65,6 +65,14 @@ def get_full_corr_columns(df: pd.DataFrame) -> List[str]:
     return cols
 
 
+def get_top_target_corr_columns(corr_df: pd.DataFrame, target_col: str = "Dropout_flag", top_k: int = 12) -> List[str]:
+    if target_col not in corr_df.columns:
+        return [target_col]
+    target_abs = corr_df[target_col].drop(labels=[target_col], errors="ignore").abs().sort_values(ascending=False)
+    top_cols = target_abs.head(top_k).index.tolist()
+    return top_cols + [target_col]
+
+
 def make_dropout_rate_figure(
     df: pd.DataFrame,
     feature: str,
@@ -163,6 +171,27 @@ def make_full_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[str])
     ax.set_title("Full Correlation Heatmap (All Numeric Columns)")
     ax.tick_params(axis="x", labelrotation=90, labelsize=8)
     ax.tick_params(axis="y", labelrotation=0, labelsize=8)
+    plt.tight_layout()
+    return fig
+
+
+def make_focused_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[str]) -> plt.Figure:
+    corr = df[corr_cols].corr()
+
+    fig, ax = plt.subplots(figsize=(11, 8))
+    sns.heatmap(
+        corr,
+        cmap="coolwarm",
+        center=0,
+        annot=False,
+        cbar_kws={"shrink": 0.85},
+        xticklabels=True,
+        yticklabels=True,
+        ax=ax,
+    )
+    ax.set_title("Focused Correlation Heatmap (Top Target-linked Variables)")
+    ax.tick_params(axis="x", labelrotation=45, labelsize=9)
+    ax.tick_params(axis="y", labelrotation=0, labelsize=9)
     plt.tight_layout()
     return fig
 
@@ -416,6 +445,7 @@ duplicate_rows = int(df.duplicated().sum())
 feature_names = meta["feature_selection"]["final_features"]
 corr_columns = get_full_corr_columns(df)
 corr_full = df[corr_columns].corr()
+focus_corr_columns = get_top_target_corr_columns(corr_full, target_col="Dropout_flag", top_k=12)
 manual_input_features = meta.get("manual_input_features", [])
 feature_ranges = meta["feature_ranges"]
 feature_means = meta["feature_means"]
@@ -430,6 +460,13 @@ corr_target_tuition = get_corr_value(corr_full, "Tuition fees up to date", "Drop
 corr_target_debtor = get_corr_value(corr_full, "Debtor", "Dropout_flag")
 corr_target_scholarship = get_corr_value(corr_full, "Scholarship holder", "Dropout_flag")
 corr_target_age = get_corr_value(corr_full, "Age at enrollment", "Dropout_flag")
+target_corr_abs = (
+    corr_full["Dropout_flag"].drop(labels=["Dropout_flag"], errors="ignore").abs().sort_values(ascending=False)
+    if "Dropout_flag" in corr_full.columns
+    else pd.Series(dtype=float)
+)
+top_target_feature = str(target_corr_abs.index[0]) if len(target_corr_abs) else "N/A"
+top_target_corr = float(corr_full.loc[top_target_feature, "Dropout_flag"]) if len(target_corr_abs) else float("nan")
 shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
 eda_highlights = compute_eda_highlights(df)
 tradeoff_text = build_model_tradeoff_text(comparison_df)
@@ -728,18 +765,31 @@ with tab2:
         )
 
     st.subheader("1.4 Correlation Heatmap")
-    fig_corr = make_full_correlation_heatmap_figure(df, corr_columns)
-    st.pyplot(fig_corr, clear_figure=True)
-    plt.close(fig_corr)
+    fig_corr_focus = make_focused_correlation_heatmap_figure(df, focus_corr_columns)
+    st.pyplot(fig_corr_focus, clear_figure=True)
+    plt.close(fig_corr_focus)
     st.caption(
-        "Correlation heatmap across all numeric columns (full dataset view). "
-        "This includes all modeling predictors plus the binary target flag."
+        "Focused heatmap using the top target-linked variables (highest |correlation with `Dropout_flag`) plus the target. "
+        "This view improves readability for interpretation."
     )
-    if not np.isnan(top_corr_val):
+    if not np.isnan(top_target_corr):
         st.markdown(
-            f"Strongest absolute correlation in the full numeric set: **{top_corr_a}** vs **{top_corr_b}** "
-            f"with **|r| = {top_corr_val:.3f}**."
+            f"Strongest target-linked variable in the full numeric set: **{top_target_feature}** "
+            f"with `Dropout_flag` (**r = {top_target_corr:.3f}**)."
         )
+    st.markdown(
+        "Interpretation note: correlations for integer-coded categorical variables should be used as directional references, "
+        "not as linear-effect magnitudes."
+    )
+    with st.expander("Show full correlation heatmap (all numeric columns)"):
+        fig_corr_full = make_full_correlation_heatmap_figure(df, corr_columns)
+        st.pyplot(fig_corr_full, clear_figure=True)
+        plt.close(fig_corr_full)
+        if not np.isnan(top_corr_val):
+            st.markdown(
+                f"Strongest absolute correlation in the full numeric set: **{top_corr_a}** vs **{top_corr_b}** "
+                f"with **|r| = {top_corr_val:.3f}**."
+            )
     st.markdown("**Heatmap interpretation (5 practical takeaways):**")
     st.markdown(
         f"1. Academic continuity is strong across semesters: first-semester and second-semester grades move together "
