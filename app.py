@@ -382,7 +382,7 @@ def compute_shap_interpretation(
     shap_values, _ = extract_pos_class_shap(shap_raw, explainer.expected_value)
 
     mean_abs = np.mean(np.abs(shap_values), axis=0)
-    top_idx = np.argsort(mean_abs)[::-1][:3]
+    top_idx = np.argsort(mean_abs)[::-1][:5]
     output: List[Dict[str, Any]] = []
 
     for idx in top_idx:
@@ -933,32 +933,100 @@ with tab3:
 
 
 with tab4:
-    st.subheader("SHAP Global Explanations")
+    st.header("Part 3: SHAP Explainability")
+
+    model_label = {
+        "decision_tree": "Decision Tree",
+        "random_forest": "Random Forest",
+        "lightgbm": "LightGBM",
+        "logistic": "Logistic Regression",
+        "mlp_keras": "MLP (Keras)",
+    }
+
+    st.subheader("3.1 Best-performing Tree-based Model Used for SHAP")
+    tree_models = ["decision_tree", "random_forest", "lightgbm"]
+    tree_perf = comparison_df[comparison_df["model"].isin(tree_models)].copy()
+    tree_perf = tree_perf.sort_values("f1", ascending=False).reset_index(drop=True)
+    tree_perf["Model"] = tree_perf["model"].map(model_label).fillna(tree_perf["model"])
+    tree_perf_view = tree_perf[["Model", "accuracy", "precision", "recall", "f1", "auc"]].rename(
+        columns={
+            "accuracy": "Accuracy",
+            "precision": "Precision",
+            "recall": "Recall",
+            "f1": "F1",
+            "auc": "AUC-ROC",
+        }
+    )
+    st.dataframe(tree_perf_view, hide_index=True, width="stretch")
+
+    chosen_tree_row = tree_perf.loc[tree_perf["model"] == best_tree_model].iloc[0]
+    best_auc_tree_row = tree_perf.sort_values("auc", ascending=False).iloc[0]
+    st.markdown(
+        f"SHAP is run on **{model_label.get(best_tree_model, best_tree_model)}**, because it is the best tree-based model by F1 on the held-out test set "
+        f"(**F1 = {chosen_tree_row['f1']:.3f}**, **AUC = {chosen_tree_row['auc']:.3f}**). "
+        "This project prioritizes F1 for dropout-risk detection quality under class imbalance."
+    )
+    if str(best_auc_tree_row["model"]) != best_tree_model:
+        st.markdown(
+            f"Note: **{model_label.get(str(best_auc_tree_row['model']), str(best_auc_tree_row['model']))}** has the highest tree-model AUC "
+            f"(**{best_auc_tree_row['auc']:.3f}**), but SHAP base model selection follows the F1-first rule defined in the pipeline."
+        )
+
+    st.subheader("3.2 Global SHAP Plots")
     st.image(str(FIGURES / "part3_shap_summary_beeswarm.png"), width="stretch")
     st.image(str(FIGURES / "part3_shap_bar.png"), width="stretch")
 
+    shap_rank_df = pd.DataFrame(shap_interpretation)
+    if not shap_rank_df.empty:
+        shap_rank_df = shap_rank_df.copy()
+        shap_rank_df["Rank"] = np.arange(1, len(shap_rank_df) + 1)
+        shap_rank_df["mean|SHAP|"] = shap_rank_df["mean_abs_shap"]
+        shap_rank_df["Direction"] = shap_rank_df["direction"]
+        st.dataframe(
+            shap_rank_df[["Rank", "feature", "mean|SHAP|", "Direction"]].rename(columns={"feature": "Feature"}),
+            hide_index=True,
+            width="stretch",
+        )
+
+    st.subheader("3.3 Required Interpretation")
+    top_feature_names = ", ".join([f"`{x['feature']}`" for x in shap_interpretation])
+    direction_sentence = "; ".join([f"`{x['feature']}` -> {x['direction']}" for x in shap_interpretation])
+    st.markdown(f"1. **Strongest impact features:** {top_feature_names}.")
+    st.markdown(f"2. **Direction of influence:** {direction_sentence}.")
     st.markdown(
-        "**Interpretation guidance:** Features at the top of the SHAP ranking have the strongest average impact on risk scores. "
-        "Positive SHAP values push toward dropout, while negative values push toward non-dropout."
-    )
-    st.subheader("Required Interpretation")
-    st.markdown(
-        "1. **Strongest impact features:** "
-        + ", ".join([f"`{x['feature']}`" for x in shap_interpretation])
-        + "."
-    )
-    st.markdown(
-        "2. **Direction of influence:** "
-        + "; ".join([f"`{x['feature']}`: {x['direction']}" for x in shap_interpretation])
-        + "."
-    )
-    st.markdown(
-        "3. **Decision-use implication:** These drivers can support proactive intervention policies (academic support, advising, and tuition-risk outreach) by identifying which factors most strongly move individual risk predictions."
+        "3. **Decision-use implication:** SHAP output supports operational triage: prioritize students when multiple risk drivers are active together "
+        "(low academic progression, tuition/debtor risk, and vulnerable profile factors), then align interventions by driver type."
     )
 
-    st.subheader("Interactive Prediction")
+    extra_insights: List[str] = []
+    shap_feature_set = {x["feature"] for x in shap_interpretation}
+    if "Curricular units 2nd sem (approved)" in shap_feature_set:
+        extra_insights.append(
+            "Academic progression dominates risk separation: when approved units in semester 2 are low, SHAP contributions frequently shift predictions toward dropout."
+        )
+    if "Tuition fees up to date" in shap_feature_set:
+        extra_insights.append(
+            "Tuition payment status behaves as a strong protective/risk switch: up-to-date payment tends to push risk down, while non-payment pushes it up."
+        )
+    if "Curricular units 1st sem (grade)" in shap_feature_set:
+        extra_insights.append(
+            "Early academic signal persists even after adding other variables: first-semester grade still contributes meaningful incremental information."
+        )
+    if "Age at enrollment" in shap_feature_set:
+        extra_insights.append(
+            "Age effects are directional but not deterministic: older enrollment tends to increase predicted risk on average, but SHAP shows overlap across individuals."
+        )
+    if "Scholarship holder" in shap_feature_set:
+        extra_insights.append(
+            "Scholarship status appears as a retention buffer in the model: scholarship holder values generally pull risk downward."
+        )
+    if extra_insights:
+        st.markdown("**Additional SHAP insights:** " + " ".join(extra_insights))
+
+    st.subheader("3.4 Interactive Prediction + Custom SHAP Waterfall")
     model_options = ["logistic", "decision_tree", "random_forest", "lightgbm", "mlp_keras"]
-    selected_model = st.selectbox("Select model for prediction", model_options, index=2)
+    default_idx = model_options.index(best_tree_model) if best_tree_model in model_options else 2
+    selected_model = st.selectbox("Select model for prediction", model_options, index=default_idx)
 
     input_values: Dict[str, float] = {}
     for f in feature_names:
@@ -1003,15 +1071,19 @@ with tab4:
 
         if selected_model in {"decision_tree", "random_forest", "lightgbm"}:
             shap_model = selected_model
-            st.info(f"SHAP waterfall is generated using the selected model: `{selected_model}`.")
+            st.info(
+                f"Waterfall explanation uses the selected tree model: **{model_label.get(selected_model, selected_model)}**."
+            )
         else:
             shap_model = best_tree_model
             st.info(
-                f"Selected model `{selected_model}` is non-tree. For local explainability, waterfall is shown with best tree-based model `{best_tree_model}`."
+                f"Selected model **{model_label.get(selected_model, selected_model)}** is non-tree. "
+                f"For local SHAP explainability, waterfall is generated with the best tree-based model "
+                f"**{model_label.get(best_tree_model, best_tree_model)}**."
             )
 
         fig = make_custom_waterfall(shap_model, row_df, feature_names, models)
         st.pyplot(fig, clear_figure=True)
 
-    st.subheader("Reference Example from Test Set")
+    st.subheader("3.5 Reference Waterfall Example from Test Set")
     st.image(str(FIGURES / "part3_shap_waterfall_example.png"), width="stretch")
