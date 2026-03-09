@@ -1516,6 +1516,19 @@ with tab3:
         "Tree ensembles model those split-style patterns very directly, while MLP performance is more sensitive to architecture, regularization, and data scale. "
         "The MLP is still the hardest to interpret directly."
     )
+    st.subheader("Final Model Decision")
+    st.markdown(
+        f"My final model choice for this project is **{f1_winner}**. "
+        f"It achieved the strongest held-out test **F1 ({best_f1_row['F1']:.3f})**, with solid **Precision ({best_f1_row['Precision']:.3f})**, "
+        f"**Recall ({best_f1_row['Recall']:.3f})**, and **AUC ({best_f1_row['AUC-ROC']:.3f})**."
+    )
+    st.markdown(
+        "This is the best fit for the current goal: identifying at-risk students early while keeping a practical balance between missed cases and false alerts."
+    )
+    if f1_winner != auc_winner:
+        st.markdown(
+            f"For reference, **{auc_winner}** has the highest AUC, so it is also a strong alternative when pure ranking quality across thresholds is prioritized."
+        )
 
     st.subheader("Best Hyperparameters (All Models)")
     st.json(best_params)
