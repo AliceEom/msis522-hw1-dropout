@@ -1082,10 +1082,6 @@ with tab3:
             f"and changes AUC by **{dt_auc - baseline_auc:+.3f}**. "
             "In practical terms, it slightly improves minority-class capture while remaining interpretable through explicit split rules."
         )
-    st.caption(
-        "Saved outputs for 2.3: best hyperparameters (`artifacts/metrics/part2_best_params.json`), "
-        "test metrics (`artifacts/metrics/part2_metrics.json`), and best-tree visualization (`artifacts/figures/part2_best_decision_tree.png`)."
-    )
 
     st.subheader("2.4 Random Forest (GridSearchCV, 5-fold)")
     st.markdown(
@@ -1101,9 +1097,7 @@ with tab3:
         "and then refit the best setting on the full training data."
     )
     st.markdown(
-        "After tuning, we evaluate once on the held-out test set and save outputs to "
-        "`artifacts/metrics/part2_best_params.json` (`random_forest` key) and "
-        "`artifacts/metrics/part2_metrics.json` (`random_forest` key)."
+        "After tuning, we evaluate once on the held-out test set and report the selected hyperparameters and final test metrics."
     )
     st.markdown(
         f"Result interpretation: the selected setting is `n_estimators={rf_params.get('model__n_estimators', 'N/A')}` "
@@ -1137,10 +1131,6 @@ with tab3:
             "save_json(paths.metrics / 'part2_metrics.json', model_metrics)",
             language="python",
         )
-    st.caption(
-        "Saved outputs for 2.4: best hyperparameters (`artifacts/metrics/part2_best_params.json`), "
-        "test metrics (`artifacts/metrics/part2_metrics.json`), and ROC (`artifacts/figures/part2_roc_random_forest.png`)."
-    )
 
     st.subheader("2.5 Boosted Tree (LightGBM, GridSearchCV, 5-fold)")
     st.markdown(
@@ -1158,9 +1148,7 @@ with tab3:
         "and refit the best LightGBM setting on the full training split."
     )
     st.markdown(
-        "After tuning, we evaluate once on the held-out test set and save outputs to "
-        "`artifacts/metrics/part2_best_params.json` (`lightgbm` key) and "
-        "`artifacts/metrics/part2_metrics.json` (`lightgbm` key)."
+        "After tuning, we evaluate once on the held-out test set and report the selected hyperparameters and final test metrics."
     )
     st.markdown(
         f"Result interpretation: the selected setting is `n_estimators={lgbm_params.get('model__n_estimators', 'N/A')}`, "
@@ -1196,10 +1184,6 @@ with tab3:
             "save_json(paths.metrics / 'part2_metrics.json', model_metrics)",
             language="python",
         )
-    st.caption(
-        "Saved outputs for 2.5: best hyperparameters (`artifacts/metrics/part2_best_params.json`), "
-        "test metrics (`artifacts/metrics/part2_metrics.json`), and ROC (`artifacts/figures/part2_roc_lightgbm.png`)."
-    )
 
     st.subheader("2.6 Neural Network (Keras MLP)")
     st.markdown(
@@ -1247,11 +1231,6 @@ with tab3:
             "model_metrics['mlp_keras'] = metrics_mlp",
             language="python",
         )
-    st.caption(
-        "Saved outputs for 2.6: MLP metrics (`artifacts/metrics/part2_metrics.json`), tuned config (`artifacts/metrics/part2_best_params.json`), "
-        "training history (`artifacts/figures/part2_mlp_training_history.png`), ROC (`artifacts/figures/part2_roc_mlp_keras.png`), "
-        "and saved model files (`artifacts/models/mlp_keras_model.keras`, `artifacts/models/mlp_preprocess.joblib`)."
-    )
 
     st.subheader("Bonus +1: MLP Hyperparameter Tuning")
     st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
@@ -1284,13 +1263,9 @@ with tab3:
             "            val_prob = model.predict(X_val).ravel()\n"
             "            val_f1 = f1_score(y_val, (val_prob >= 0.5).astype(int))\n"
             "            tuning_results.append({...})\n"
-            "pd.DataFrame(tuning_results).to_csv('artifacts/metrics/bonus_mlp_tuning_results.csv', index=False)",
+            "pd.DataFrame(tuning_results).to_csv('bonus_mlp_tuning_results.csv', index=False)",
             language="python",
         )
-    st.caption(
-        "Saved bonus outputs: tuning results table (`artifacts/metrics/bonus_mlp_tuning_results.csv`) and "
-        "tuning heatmap (`artifacts/figures/bonus_mlp_tuning_heatmap.png`)."
-    )
 
     st.subheader("2.7 Model Comparison Summary")
     st.dataframe(comparison_df, width="stretch")
