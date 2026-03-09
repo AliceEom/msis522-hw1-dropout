@@ -831,7 +831,7 @@ with tab1:
             f"while **{exec_best_f1_model}** gives the best precision-recall balance at the chosen threshold."
         )
 
-    st.subheader("Executive Takeaways (Plain Language)")
+    st.subheader("Executive Takeaways")
     st.markdown(
         "- **What this project does:** It gives each student a dropout-risk probability and a clear reason summary (SHAP drivers).\n"
         "- **What stands out in the data:** Early academic performance and financial stability are the most actionable signals.\n"
