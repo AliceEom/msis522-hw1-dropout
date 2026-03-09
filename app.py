@@ -386,11 +386,11 @@ with tab2:
         "This confirms that F1/AUC are more reliable than accuracy alone for model selection."
     )
     st.markdown(
-        "This is a **classification** target, so a class-frequency bar chart is the correct plot for Section 1.2. "
+        "This is a **classification** target, so a class-frequency bar chart is the correct plot here. "
         "Histogram/KDE plots are used for continuous regression targets."
     )
     st.markdown(
-        "Interpretation for 1.2: the target distribution is skewed toward the non-dropout class. "
+        "The target distribution is skewed toward the non-dropout class. "
         "For a categorical target, outliers are not interpreted the same way as in continuous targets; the main issue is class imbalance."
     )
     if original_counts:
@@ -403,7 +403,13 @@ with tab2:
             f"**Non-dropout (0) = original Enrolled + Graduate ({enrolled_n} + {graduate_n} = {non_dropout_n})**."
         )
     st.markdown(
-        "Imbalance response used in this project: stratified splitting, class-weighted training, and evaluation focused on F1/AUC instead of accuracy-only reporting."
+        "How this imbalance is handled in this project (simple workflow):"
+    )
+    st.markdown(
+        "1. **Keep class ratio stable in train/test** using stratified split.\n"
+        "2. **Penalize mistakes on the dropout class more** using class weights.\n"
+        "3. **Evaluate with F1 and AUC (not accuracy only)** so minority-class detection is reflected.\n"
+        "4. **Review precision/recall trade-off** to match intervention policy."
     )
 
     col_a, col_b = st.columns(2)
