@@ -17,6 +17,7 @@ import seaborn as sns
 import shap
 import streamlit as st
 import tensorflow as tf
+from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="Student Dropout Risk Modeling", layout="wide")
 
@@ -600,27 +601,35 @@ def compute_reference_waterfall_details(
     _df: pd.DataFrame,
     _feature_names: List[str],
     _best_tree_model: str,
+    _random_state: int = 42,
 ) -> Dict[str, Any]:
     model_map = load_models()
     tree_pipe = model_map[_best_tree_model]
 
-    X_raw = _df[_feature_names].copy()
+    _, test_df = train_test_split(
+        _df,
+        test_size=0.30,
+        stratify=_df["Dropout_flag"],
+        random_state=_random_state,
+    )
+    X_raw = test_df[_feature_names].copy()
     probs = tree_pipe.predict_proba(X_raw)[:, 1]
-    ref_idx = int(np.argmax(probs))
+    ref_pos = int(np.argmax(probs))
+    ref_idx_original = int(test_df.index[ref_pos])
 
     X_trans = tree_pipe.named_steps["preprocess"].transform(X_raw)
     X_trans_df = pd.DataFrame(X_trans, columns=_feature_names)
 
     tree_model = tree_pipe.named_steps["model"]
     explainer = shap.TreeExplainer(tree_model)
-    shap_raw = explainer.shap_values(X_trans_df.iloc[[ref_idx]])
+    shap_raw = explainer.shap_values(X_trans_df.iloc[[ref_pos]])
     shap_values, _ = extract_pos_class_shap(shap_raw, explainer.expected_value)
     row_shap = np.array(shap_values[0], dtype=float)
 
     detail_df = pd.DataFrame(
         {
             "Feature": _feature_names,
-            "Feature Value": X_trans_df.iloc[ref_idx].values,
+            "Feature Value": X_trans_df.iloc[ref_pos].values,
             "SHAP Value": row_shap,
         }
     )
@@ -628,8 +637,9 @@ def compute_reference_waterfall_details(
     top_protective = detail_df.sort_values("SHAP Value", ascending=True).head(3).copy()
 
     return {
-        "reference_index": ref_idx,
-        "reference_probability": float(probs[ref_idx]),
+        "reference_index": ref_idx_original,
+        "reference_test_position": ref_pos,
+        "reference_probability": float(probs[ref_pos]),
         "top_risk": top_risk.to_dict(orient="records"),
         "top_protective": top_protective.to_dict(orient="records"),
     }
@@ -678,7 +688,12 @@ target_corr_abs = (
 top_target_feature = str(target_corr_abs.index[0]) if len(target_corr_abs) else "N/A"
 top_target_corr = float(corr_full.loc[top_target_feature, "Dropout_flag"]) if len(target_corr_abs) else float("nan")
 shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
-reference_waterfall = compute_reference_waterfall_details(df, feature_names, best_tree_model)
+reference_waterfall = compute_reference_waterfall_details(
+    df,
+    feature_names,
+    best_tree_model,
+    int(meta.get("random_state", 42)),
+)
 eda_highlights = compute_eda_highlights(df)
 tradeoff_text = build_model_tradeoff_text(comparison_df)
 original_counts = meta["dataset_stats"].get("target_counts_original", {})
@@ -1773,7 +1788,8 @@ with tab4:
     )
     if reference_waterfall:
         st.markdown(
-            f"Reference-case details: this example is test-row index **{reference_waterfall['reference_index']}**, "
+            f"Reference-case details: this example is test-set position **{reference_waterfall['reference_test_position']}** "
+            f"(original dataframe index **{reference_waterfall['reference_index']}**), "
             f"with predicted dropout probability **{reference_waterfall['reference_probability']:.3f}** "
             f"from **{model_label.get(best_tree_model, best_tree_model)}**."
         )
