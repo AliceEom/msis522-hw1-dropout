@@ -1510,7 +1510,10 @@ with tab3:
         "The trade-off is practical: Logistic Regression and a single Decision Tree are easier to explain to non-technical stakeholders and train quickly, "
         "but they usually give slightly weaker nonlinear performance. Random Forest / LightGBM typically improve risk discrimination, "
         "while requiring longer tuning time and offering lower transparency than a single-tree rule set. "
-        "The MLP captures nonlinear structure too, but in this tabular setting it did not beat the best tree ensemble on F1, and it is the hardest to interpret directly."
+        "A notable surprise in this project is that the neural network (MLP) did not outperform the top tree ensemble on F1. "
+        "This is common in medium-size tabular data: tree ensembles often fit mixed tabular patterns more efficiently, while MLP performance is more sensitive to architecture and regularization choices. "
+        "So the lower MLP score is not mainly because the task is binary; it is more about model-data fit in this specific tabular setting. "
+        "The MLP is still the hardest to interpret directly."
     )
 
     st.subheader("Best Hyperparameters (All Models)")
