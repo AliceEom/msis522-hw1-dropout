@@ -73,6 +73,35 @@ def make_dropout_rate_figure(
     return fig
 
 
+def make_grade_band_dropout_figure(df: pd.DataFrame) -> plt.Figure:
+    tmp = df[["Curricular units 1st sem (grade)", "Dropout_flag"]].dropna().copy()
+    tmp["grade_band"] = pd.qcut(
+        tmp["Curricular units 1st sem (grade)"],
+        4,
+        labels=[
+            "Lowest 25% grades",
+            "Lower-middle 25%",
+            "Upper-middle 25%",
+            "Highest 25% grades",
+        ],
+        duplicates="drop",
+    )
+    rate = tmp.groupby("grade_band", observed=True)["Dropout_flag"].mean().reset_index()
+
+    fig, ax = plt.subplots(figsize=(8.2, 4.6))
+    sns.barplot(data=rate, x="grade_band", y="Dropout_flag", palette="viridis", ax=ax)
+    ax.set_title("Dropout Rate by 1st-Semester Grade Bands")
+    ax.set_xlabel("")
+    ax.set_ylabel("Dropout Rate")
+    ax.set_ylim(0, min(1.0, float(rate["Dropout_flag"].max()) + 0.1))
+    ax.grid(axis="y", alpha=0.25)
+    for label in ax.get_xticklabels():
+        label.set_rotation(12)
+        label.set_ha("right")
+    plt.tight_layout()
+    return fig
+
+
 @st.cache_data
 def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
     tmp = df.copy()
@@ -499,25 +528,26 @@ with tab2:
             "The larger center gap than in admission scores suggests first-semester performance is a much sharper early-separation signal."
         )
 
-    st.image(str(FIGURES / "part1_dropout_by_grade_quartile.png"), width="stretch")
+    fig_grade_band = make_grade_band_dropout_figure(df)
+    st.pyplot(fig_grade_band, clear_figure=True)
+    plt.close(fig_grade_band)
     st.caption(captions["dropout_by_grade_quartile"])
     st.markdown(
-        f"Dropout risk by quartile is highly nonlinear: **Q1 = {eda_highlights['dropout_q1']:.1%}** vs **Q4 = {eda_highlights['dropout_q4']:.1%}**. "
+        f"Dropout risk by grade band is highly nonlinear: **Lowest 25% = {eda_highlights['dropout_q1']:.1%}** vs **Highest 25% = {eda_highlights['dropout_q4']:.1%}**. "
         "In practical terms, students in the lowest performance quartile should be prioritized for early support."
     )
     st.markdown(
         "How to read this chart: "
         "1) students are sorted by first-semester grade, "
-        "2) then split into four equal-size groups (Q1 to Q4), and "
+        "2) then split into four equal-size grade bands, and "
         "3) each bar shows the dropout percentage inside that group. "
         "So this is a risk-by-group view, not raw grade values on the y-axis."
     )
     st.markdown(
-        "Quartile definitions: **Q1 = lowest 25% grade group**, **Q2 = next 25%**, "
-        "**Q3 = next 25%**, **Q4 = highest 25% grade group**."
+        "Important: these are **grade percentile bands**, not semester quarters."
     )
     st.markdown(
-        "Actionable insight: because Q1 has the highest dropout rate, this group should receive first-priority support "
+        "Actionable insight: because the **lowest 25% grade band** has the highest dropout rate, this group should receive first-priority support "
         "(early advising outreach, tutoring, and financial-risk check-ins) before risk compounds."
     )
     st.markdown(
