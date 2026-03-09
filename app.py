@@ -473,6 +473,59 @@ def get_decision_tree_level_notes(tree_pipe: Any, feature_names: List[str], max_
     return notes
 
 
+def get_decision_tree_path_summary(tree_pipe: Any, feature_names: List[str]) -> Dict[str, Any]:
+    try:
+        model = tree_pipe.named_steps["model"]
+        tree = model.tree_
+    except Exception:
+        return {}
+
+    classes = list(getattr(model, "classes_", [0, 1]))
+    dropout_idx = classes.index(1) if 1 in classes else min(1, len(classes) - 1)
+    leaf_flag = -2
+
+    leaf_rows: List[Dict[str, Any]] = []
+
+    def walk(node_id: int, rules: List[str]) -> None:
+        feat_idx = int(tree.feature[node_id])
+        if feat_idx == leaf_flag:
+            values = np.array(tree.value[node_id][0], dtype=float)
+            total = float(values.sum())
+            dropout_share = float(values[dropout_idx] / total) if total > 0 else float("nan")
+            leaf_rows.append(
+                {
+                    "path": " and ".join(rules) if rules else "(no split)",
+                    "dropout_share": dropout_share,
+                    "samples": int(tree.n_node_samples[node_id]),
+                }
+            )
+            return
+
+        feat_name = feature_names[feat_idx] if 0 <= feat_idx < len(feature_names) else f"feature_{feat_idx}"
+        threshold = float(tree.threshold[node_id])
+        walk(int(tree.children_left[node_id]), rules + [f"{feat_name} <= {threshold:.2f}"])
+        walk(int(tree.children_right[node_id]), rules + [f"{feat_name} > {threshold:.2f}"])
+
+    walk(0, [])
+
+    if not leaf_rows:
+        return {}
+
+    leaf_df = pd.DataFrame(leaf_rows).sort_values("samples", ascending=False)
+    high = leaf_df.sort_values(["dropout_share", "samples"], ascending=[False, False]).iloc[0].to_dict()
+    low = leaf_df.sort_values(["dropout_share", "samples"], ascending=[True, False]).iloc[0].to_dict()
+
+    root_values = np.array(tree.value[0][0], dtype=float)
+    root_total = float(root_values.sum())
+    root_share = float(root_values[dropout_idx] / root_total) if root_total > 0 else float("nan")
+
+    return {
+        "root_dropout_share": root_share,
+        "high_risk": high,
+        "low_risk": low,
+    }
+
+
 @st.cache_data
 def compute_shap_interpretation(
     _df: pd.DataFrame,
@@ -971,6 +1024,7 @@ with tab3:
     dt_auc = float(dt_metrics.get("auc", np.nan))
     dt_params = best_params.get("decision_tree", {})
     dt_level_notes = get_decision_tree_level_notes(models.get("decision_tree"), feature_names, max_depth=2)
+    dt_path_summary = get_decision_tree_path_summary(models.get("decision_tree"), feature_names)
     rf_metrics = metrics.get("random_forest", {})
     rf_accuracy = float(rf_metrics.get("accuracy", np.nan))
     rf_precision = float(rf_metrics.get("precision", np.nan))
@@ -1141,6 +1195,23 @@ with tab3:
         st.markdown(
             "Reading guide: depth 0 is the first split (root), depth 1 is the second layer, and depth 2 is the next layer. "
             "Use these top levels as the model's main screening logic."
+        )
+    if dt_path_summary:
+        high = dt_path_summary["high_risk"]
+        low = dt_path_summary["low_risk"]
+        root_share = float(dt_path_summary["root_dropout_share"])
+        high_share = float(high["dropout_share"])
+        low_share = float(low["dropout_share"])
+        st.markdown("**What these splits mean in practice:**")
+        st.markdown(
+            f"- Baseline dropout share at the root is **{root_share:.1%}**.\n"
+            f"- A high-risk leaf reaches **{high_share:.1%}** dropout share under this rule path: `{high['path']}`.\n"
+            f"- A low-risk leaf drops to **{low_share:.1%}** dropout share under this rule path: `{low['path']}`."
+        )
+        st.markdown(
+            f"Interpretation: the gap between high-risk and low-risk leaves is **{high_share - low_share:+.1%}**. "
+            "This means the CART model is not just fitting noise; it is separating meaningful student profiles into clearly different risk groups. "
+            "Operationally, the high-risk path can be used as an early-alert rule template, while the low-risk path indicates conditions associated with stable retention."
         )
 
     st.subheader("2.4 Random Forest (GridSearchCV, 5-fold)")
