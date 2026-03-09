@@ -1496,6 +1496,22 @@ with tab3:
         "7. **Decision recommendation:** use the top F1 model as the default operational model, "
         "but monitor precision/recall trade-off monthly and adjust threshold based on intervention capacity."
     )
+    f1_winner = str(best_f1_row["Model"])
+    auc_winner = str(best_auc_row["Model"])
+    surprise_line = (
+        f"It was interesting that **{auc_winner}** achieved the top AUC ({best_auc_row['AUC-ROC']:.3f}) while "
+        f"**{f1_winner}** still led F1 ({best_f1_row['F1']:.3f}), so ranking quality and fixed-threshold balance were not identical."
+        if f1_winner != auc_winner
+        else f"It was not very surprising because **{f1_winner}** led both F1 ({best_f1_row['F1']:.3f}) and AUC ({best_f1_row['AUC-ROC']:.3f})."
+    )
+    st.markdown(
+        f"Overall, the best-performing model in this run is **{f1_winner}** based on the primary F1 criterion. "
+        f"{surprise_line} "
+        "The trade-off is practical: Logistic Regression and a single Decision Tree are easier to explain to non-technical stakeholders and train quickly, "
+        "but they usually give slightly weaker nonlinear performance. Random Forest / LightGBM typically improve risk discrimination, "
+        "while requiring longer tuning time and offering lower transparency than a single-tree rule set. "
+        "The MLP captures nonlinear structure too, but in this tabular setting it did not beat the best tree ensemble on F1, and it is the hardest to interpret directly."
+    )
 
     st.subheader("Best Hyperparameters (All Models)")
     st.json(best_params)
