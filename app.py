@@ -876,6 +876,13 @@ with tab3:
     dt_f1 = float(dt_metrics.get("f1", np.nan))
     dt_auc = float(dt_metrics.get("auc", np.nan))
     dt_params = best_params.get("decision_tree", {})
+    rf_metrics = metrics.get("random_forest", {})
+    rf_accuracy = float(rf_metrics.get("accuracy", np.nan))
+    rf_precision = float(rf_metrics.get("precision", np.nan))
+    rf_recall = float(rf_metrics.get("recall", np.nan))
+    rf_f1 = float(rf_metrics.get("f1", np.nan))
+    rf_auc = float(rf_metrics.get("auc", np.nan))
+    rf_params = best_params.get("random_forest", {})
     best_row_by_f1 = comparison_df.sort_values("f1", ascending=False).iloc[0]
     best_model_name = str(best_row_by_f1["model"])
     best_model_f1 = float(best_row_by_f1["f1"])
@@ -1031,6 +1038,53 @@ with tab3:
     st.markdown(f"Best params: `{best_params.get('random_forest', {})}`")
     st.dataframe(one_row_metrics("random_forest", "Random Forest"), hide_index=True, width="stretch")
     st.image(str(FIGURES / "part2_roc_random_forest.png"), width="stretch")
+    st.markdown(
+        "How best hyperparameters were found and reported: "
+        "we run `GridSearchCV` on the training split only with `5-fold Stratified CV`, "
+        "evaluate all `3 x 3 = 9` parameter combinations using mean CV F1, "
+        "and then refit the best setting on the full training data."
+    )
+    st.markdown(
+        "After tuning, we evaluate once on the held-out test set and save outputs to "
+        "`artifacts/metrics/part2_best_params.json` (`random_forest` key) and "
+        "`artifacts/metrics/part2_metrics.json` (`random_forest` key)."
+    )
+    st.markdown(
+        f"Result interpretation: the selected setting is `n_estimators={rf_params.get('model__n_estimators', 'N/A')}` "
+        f"and `max_depth={rf_params.get('model__max_depth', 'N/A')}`. "
+        "This balance usually gives enough model capacity to capture nonlinear risk patterns without becoming too deep."
+    )
+    st.markdown(
+        f"On the test set, Random Forest reaches **Accuracy {rf_accuracy:.3f}**, **Precision {rf_precision:.3f}**, "
+        f"**Recall {rf_recall:.3f}**, **F1 {rf_f1:.3f}**, and **AUC {rf_auc:.3f}**."
+    )
+    if not np.isnan(baseline_f1):
+        st.markdown(
+            f"Compared with the Logistic baseline, Random Forest changes F1 by **{rf_f1 - baseline_f1:+.3f}** "
+            f"and AUC by **{rf_auc - baseline_auc:+.3f}**. "
+            "The pattern here is straightforward: precision improves while recall stays competitive, "
+            "so the model reduces unnecessary alerts while still identifying most at-risk students."
+        )
+    with st.expander("2.4 Implementation Code (train_pipeline.py)"):
+        st.code(
+            "rf_grid = {\n"
+            "    'model__n_estimators': [50, 100, 200],\n"
+            "    'model__max_depth': [3, 5, 8],\n"
+            "}\n"
+            "gs_rf = GridSearchCV(rf_pipe, rf_grid, scoring='f1', cv=cv, n_jobs=1, refit=True)\n"
+            "gs_rf.fit(X_train, y_train)\n"
+            "best_rf = gs_rf.best_estimator_\n"
+            "metrics_rf, _, prob_rf = evaluate_sklearn_classifier(best_rf, X_test, y_test)\n"
+            "best_params['random_forest'] = gs_rf.best_params_\n"
+            "model_metrics['random_forest'] = metrics_rf\n"
+            "save_json(paths.metrics / 'part2_best_params.json', best_params)\n"
+            "save_json(paths.metrics / 'part2_metrics.json', model_metrics)",
+            language="python",
+        )
+    st.caption(
+        "Saved outputs for 2.4: best hyperparameters (`artifacts/metrics/part2_best_params.json`), "
+        "test metrics (`artifacts/metrics/part2_metrics.json`), and ROC (`artifacts/figures/part2_roc_random_forest.png`)."
+    )
 
     st.subheader("2.5 Boosted Tree (LightGBM, GridSearchCV, 5-fold)")
     st.markdown(
