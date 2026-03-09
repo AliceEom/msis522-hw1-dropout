@@ -1220,32 +1220,165 @@ with tab3:
         st.dataframe(bonus_top3, hide_index=True, width="stretch")
 
     st.subheader("2.7 Model Comparison Summary")
-    st.dataframe(comparison_df, width="stretch")
-    st.image(str(FIGURES / "part2_f1_bar_comparison.png"), width="stretch")
-    if not np.isnan(baseline_f1):
-        delta = best_model_f1 - baseline_f1
-        if best_model_name != "logistic":
-            st.markdown(
-                f"Baseline check: Logistic F1 is **{baseline_f1:.3f}**. "
-                f"Best model by F1 is **{best_model_name}** at **{best_model_f1:.3f}** "
-                f"(improvement **{delta:.3f}** over baseline)."
-            )
-        else:
-            st.markdown(
-                f"Baseline check: Logistic is currently the top F1 model at **{baseline_f1:.3f}**."
-            )
+    model_name_map = {
+        "logistic": "Logistic Regression (Baseline)",
+        "decision_tree": "Decision Tree (CART)",
+        "random_forest": "Random Forest",
+        "lightgbm": "LightGBM (Boosted Tree)",
+        "mlp_keras": "MLP (Keras)",
+    }
+    metric_cols = ["Accuracy", "Precision", "Recall", "F1", "AUC-ROC"]
+    summary_df = comparison_df.copy()
+    summary_df["Model"] = summary_df["model"].map(model_name_map).fillna(summary_df["model"])
+    summary_df = (
+        summary_df[["Model", "accuracy", "precision", "recall", "f1", "auc"]]
+        .rename(
+            columns={
+                "accuracy": "Accuracy",
+                "precision": "Precision",
+                "recall": "Recall",
+                "f1": "F1",
+                "auc": "AUC-ROC",
+            }
+        )
+        .sort_values("F1", ascending=False)
+        .reset_index(drop=True)
+    )
+    st.dataframe(summary_df, hide_index=True, width="stretch")
+
+    # F1 chart with zoomed y-range so close scores are still visually distinguishable.
+    fig_f1, ax_f1 = plt.subplots(figsize=(10, 4.8))
+    sns.barplot(data=summary_df, x="Model", y="F1", palette="Set2", ax=ax_f1)
+    f1_min = float(summary_df["F1"].min())
+    f1_max = float(summary_df["F1"].max())
+    ax_f1.set_ylim(max(0.0, f1_min - 0.015), min(1.0, f1_max + 0.015))
+    ax_f1.set_title("F1 Comparison (Zoomed Scale for Small Differences)")
+    ax_f1.set_xlabel("")
+    ax_f1.set_ylabel("F1")
+    ax_f1.tick_params(axis="x", rotation=18)
+    for idx, val in enumerate(summary_df["F1"].tolist()):
+        ax_f1.text(idx, float(val) + 0.0012, f"{val:.3f}", ha="center", va="bottom", fontsize=9)
+    ax_f1.grid(axis="y", alpha=0.25)
+    plt.tight_layout()
+    st.pyplot(fig_f1, clear_figure=True)
+    plt.close(fig_f1)
+
+    # Metric heatmap for compact side-by-side comparison.
+    heat_df = summary_df.set_index("Model")[metric_cols]
+    fig_heat, ax_heat = plt.subplots(figsize=(10.5, 4.6))
+    sns.heatmap(
+        heat_df,
+        annot=True,
+        fmt=".3f",
+        cmap="YlGnBu",
+        vmin=float(heat_df.values.min()),
+        vmax=float(heat_df.values.max()),
+        linewidths=0.2,
+        linecolor="white",
+        cbar_kws={"shrink": 0.85},
+        ax=ax_heat,
+    )
+    ax_heat.set_title("Model-Metric Heatmap")
+    ax_heat.set_xlabel("")
+    ax_heat.set_ylabel("")
+    plt.tight_layout()
+    st.pyplot(fig_heat, clear_figure=True)
+    plt.close(fig_heat)
+
+    # Baseline-delta view (how each model moves vs Logistic baseline).
+    baseline_label = "Logistic Regression (Baseline)"
+    if baseline_label in heat_df.index:
+        baseline_vec = heat_df.loc[baseline_label]
+        delta_df = heat_df.subtract(baseline_vec, axis=1).drop(index=[baseline_label], errors="ignore")
+        fig_delta, ax_delta = plt.subplots(figsize=(10.5, 3.9))
+        vmax = float(np.abs(delta_df.values).max()) if len(delta_df) else 0.01
+        vmax = max(vmax, 0.005)
+        sns.heatmap(
+            delta_df,
+            annot=True,
+            fmt="+.3f",
+            cmap="RdBu_r",
+            center=0.0,
+            vmin=-vmax,
+            vmax=vmax,
+            linewidths=0.2,
+            linecolor="white",
+            cbar_kws={"shrink": 0.8},
+            ax=ax_delta,
+        )
+        ax_delta.set_title("Improvement vs Logistic Baseline (Positive Is Better)")
+        ax_delta.set_xlabel("")
+        ax_delta.set_ylabel("")
+        plt.tight_layout()
+        st.pyplot(fig_delta, clear_figure=True)
+        plt.close(fig_delta)
+
+    # Rank table by metric.
+    rank_df = heat_df.rank(ascending=False, method="min").astype(int)
+    rank_df = rank_df.rename(columns={c: f"{c} Rank" for c in rank_df.columns})
+    st.dataframe(rank_df.reset_index(), hide_index=True, width="stretch")
+
+    # Detailed metric-by-metric interpretation.
+    best_acc_row = summary_df.loc[summary_df["Accuracy"].idxmax()]
+    best_prec_row = summary_df.loc[summary_df["Precision"].idxmax()]
+    best_rec_row = summary_df.loc[summary_df["Recall"].idxmax()]
+    best_f1_row = summary_df.loc[summary_df["F1"].idxmax()]
+    best_auc_row = summary_df.loc[summary_df["AUC-ROC"].idxmax()]
+
+    st.markdown(
+        f"1. **Accuracy perspective:** highest Accuracy is **{best_acc_row['Model']} ({best_acc_row['Accuracy']:.3f})**. "
+        "Accuracy reflects overall correct predictions, but in this imbalanced problem it can hide minority-class misses if used alone."
+    )
+    st.markdown(
+        f"2. **Precision perspective:** highest Precision is **{best_prec_row['Model']} ({best_prec_row['Precision']:.3f})**. "
+        "Higher precision means fewer false alarms among students flagged as high risk, which helps when intervention resources are limited."
+    )
+    st.markdown(
+        f"3. **Recall perspective:** highest Recall is **{best_rec_row['Model']} ({best_rec_row['Recall']:.3f})**. "
+        "Higher recall means more at-risk students are caught, which is valuable when missing a true dropout case is costly."
+    )
+    st.markdown(
+        f"4. **F1 perspective (primary metric):** best F1 is **{best_f1_row['Model']} ({best_f1_row['F1']:.3f})**. "
+        "F1 balances precision and recall, so this is the most policy-aligned score for the current class-imbalance setting."
+    )
+    st.markdown(
+        f"5. **AUC perspective:** highest AUC is **{best_auc_row['Model']} ({best_auc_row['AUC-ROC']:.3f})**. "
+        "AUC measures ranking quality across thresholds, so this is important for prioritizing students by risk score rather than one fixed cutoff."
+    )
+    if baseline_label in heat_df.index:
+        base = heat_df.loc[baseline_label]
+        st.markdown(
+            f"6. **Baseline comparison summary:** vs Logistic baseline, best-F1 model (**{best_f1_row['Model']}**) changes "
+            f"Accuracy by **{best_f1_row['Accuracy'] - base['Accuracy']:+.3f}**, Precision by **{best_f1_row['Precision'] - base['Precision']:+.3f}**, "
+            f"Recall by **{best_f1_row['Recall'] - base['Recall']:+.3f}**, F1 by **{best_f1_row['F1'] - base['F1']:+.3f}**, "
+            f"and AUC by **{best_f1_row['AUC-ROC'] - base['AUC-ROC']:+.3f}**."
+        )
+    st.markdown(
+        "7. **Decision recommendation:** use the top F1 model as the default operational model, "
+        "but monitor precision/recall trade-off monthly and adjust threshold based on intervention capacity."
+    )
 
     st.subheader("Best Hyperparameters (All Models)")
     st.json(best_params)
 
     st.subheader("ROC Curves (All Models)")
-    st.image(str(FIGURES / "part2_roc_logistic.png"), width="stretch")
-    st.image(str(FIGURES / "part2_roc_decision_tree.png"), width="stretch")
-    st.image(str(FIGURES / "part2_roc_random_forest.png"), width="stretch")
-    st.image(str(FIGURES / "part2_roc_lightgbm.png"), width="stretch")
-    st.image(str(FIGURES / "part2_roc_mlp_keras.png"), width="stretch")
-
-    st.markdown(tradeoff_text)
+    roc_items = [
+        ("Logistic", "part2_roc_logistic.png"),
+        ("Decision Tree (CART)", "part2_roc_decision_tree.png"),
+        ("Random Forest", "part2_roc_random_forest.png"),
+        ("LightGBM", "part2_roc_lightgbm.png"),
+        ("MLP (Keras)", "part2_roc_mlp_keras.png"),
+    ]
+    row1 = st.columns(3)
+    for col, (label, fn) in zip(row1, roc_items[:3]):
+        with col:
+            st.markdown(f"**{label}**")
+            st.image(str(FIGURES / fn), width="stretch")
+    row2 = st.columns(2)
+    for col, (label, fn) in zip(row2, roc_items[3:]):
+        with col:
+            st.markdown(f"**{label}**")
+            st.image(str(FIGURES / fn), width="stretch")
 
 
 with tab4:
