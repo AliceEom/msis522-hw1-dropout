@@ -1030,11 +1030,8 @@ with tab3:
     )
     st.markdown(f"Best params: `{best_params.get('decision_tree', {})}`")
     st.dataframe(one_row_metrics("decision_tree", "Decision Tree"), hide_index=True, width="stretch")
-    tree_col1, tree_col2 = st.columns(2)
-    with tree_col1:
-        st.image(str(FIGURES / "part2_best_decision_tree.png"), width="stretch")
-    with tree_col2:
-        st.image(str(FIGURES / "part2_roc_decision_tree.png"), width="stretch")
+    st.image(str(FIGURES / "part2_best_decision_tree.png"), width="stretch")
+    st.image(str(FIGURES / "part2_roc_decision_tree.png"), width="stretch")
     st.markdown(
         f"Result interpretation: the best CV setting is `max_depth={dt_params.get('model__max_depth', 'N/A')}` "
         f"and `min_samples_leaf={dt_params.get('model__min_samples_leaf', 'N/A')}`. "
