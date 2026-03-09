@@ -1601,19 +1601,15 @@ with tab3:
         key="metric_explorer_tab3",
     )
     metric_chart_df = summary_df[["Model", selected_metric]].sort_values(selected_metric, ascending=False).copy()
-    metric_chart = (
-        alt.Chart(metric_chart_df)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
-        .encode(
-            x=alt.X("Model:N", sort="-y", axis=alt.Axis(labelAngle=-20)),
-            y=alt.Y(f"{selected_metric}:Q", title=selected_metric, scale=alt.Scale(domain=[0, 1])),
-            color=alt.Color(f"{selected_metric}:Q", legend=None, scale=alt.Scale(scheme="tealblues")),
-            tooltip=[alt.Tooltip("Model:N"), alt.Tooltip(f"{selected_metric}:Q", format=".3f")],
+    metric_chart_df[selected_metric] = pd.to_numeric(metric_chart_df[selected_metric], errors="coerce")
+    metric_chart_df = metric_chart_df.dropna(subset=[selected_metric]).reset_index(drop=True)
+    if not metric_chart_df.empty:
+        st.bar_chart(
+            metric_chart_df.set_index("Model")[[selected_metric]],
+            use_container_width=True,
         )
-        .properties(height=320)
-        .interactive()
-    )
-    st.altair_chart(metric_chart, use_container_width=True)
+    else:
+        st.warning("Metric chart could not be rendered for the selected metric.")
 
     # F1 chart with zoomed y-range so close scores are still visually distinguishable.
     fig_f1, ax_f1 = plt.subplots(figsize=(10, 4.8))
