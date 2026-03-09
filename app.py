@@ -950,24 +950,6 @@ with tab2:
     )
     target_counts_df["Outcome"] = target_counts_df["Dropout_flag"].map({0: "Non-dropout (0)", 1: "Dropout (1)"})
     target_counts_df["Rate"] = target_counts_df["Count"] / float(target_counts_df["Count"].sum())
-    st.markdown("**Interactive view (hover for exact counts and ratios):**")
-    target_chart = (
-        alt.Chart(target_counts_df)
-        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
-        .encode(
-            x=alt.X("Outcome:N", title="Class"),
-            y=alt.Y("Count:Q", title="Count"),
-            color=alt.Color("Outcome:N", legend=None, scale=alt.Scale(range=["#4C72B0", "#C44E52"])),
-            tooltip=[
-                alt.Tooltip("Outcome:N"),
-                alt.Tooltip("Count:Q", format=","),
-                alt.Tooltip("Rate:Q", format=".1%"),
-            ],
-        )
-        .properties(height=300)
-        .interactive()
-    )
-    st.altair_chart(target_chart, use_container_width=True)
     st.markdown(
         f"Observed class mix: **Dropout = {eda_highlights['dropout_rate']:.1%}** and **Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**. "
         "This confirms that F1/AUC are more reliable than accuracy alone for model selection."
@@ -1184,31 +1166,36 @@ with tab2:
                 f"Strongest absolute correlation in the full numeric set: **{top_corr_a}** vs **{top_corr_b}** "
                 f"with **|r| = {top_corr_val:.3f}**."
             )
-    st.markdown("**Reading the heatmap:**")
+    st.markdown("**Reading the heatmap and why it matters for modeling:**")
     st.markdown(
-        f"Academic performance carries through across semesters: first-semester and second-semester grades are tightly linked "
-        f"(**r = {corr_first_second_grade:.3f}**), and the same pattern shows up for approved units (**r = {corr_first_second_approved:.3f}**). "
-        "That persistence is actually useful for intervention: a student struggling in semester one is likely to struggle again in semester two, "
-        "so acting early has real leverage. "
-        f"Application mode and age at enrollment also correlate moderately (**r = {corr_age_app_mode:.3f}**), "
-        "which makes sense since older students often come through different admission pathways. "
-        "This overlap is worth keeping in mind when selecting features, since the two variables might be partially redundant."
+        f"The strongest structure in this matrix is academic continuity. "
+        f"First-semester and second-semester grades move together (**r = {corr_first_second_grade:.3f}**), "
+        f"and approved units also move together across semesters (**r = {corr_first_second_approved:.3f}**). "
+        "In practical terms, this means performance is not random semester-to-semester: students who start off behind usually stay behind unless something changes. "
+        "That is exactly the kind of stable signal a prediction model can use early."
     )
     st.markdown(
-        f"Looking directly at the dropout target, second-semester performance has one of the strongest associations "
-        f"(grade r = {corr_target_second_grade:.3f}, approved-units r = {corr_target_second_approved:.3f}). "
-        "The negative sign is what you'd expect: higher grades mean lower dropout risk. "
-        f"Financial variables follow the same pattern: tuition up-to-date is negatively related to dropout (**r = {corr_target_tuition:.3f}**), "
-        f"debtor status is positively related (**r = {corr_target_debtor:.3f}**), "
-        f"and scholarship status is protective (**r = {corr_target_scholarship:.3f}**). "
-        f"Age at enrollment shows a small positive association with dropout risk (**r = {corr_target_age:.3f}**), "
-        "which may reflect the additional pressures older students often face, including work, family obligations, and less scheduling flexibility."
+        f"When we look at the target directly, second-semester academic features are among the strongest links "
+        f"(grade **r = {corr_target_second_grade:.3f}**, approved units **r = {corr_target_second_approved:.3f}** with `Dropout_flag`). "
+        "The negative sign is important: as grades/approved units go up, dropout risk goes down. "
+        "So these variables are not just statistically significant; they are directionally interpretable and operationally useful for early-warning triage."
     )
     st.markdown(
-        "For modeling, the main takeaway is that academic-progress and financial-status variables carry the clearest signal, "
-        "while features with very high inter-correlations need to be filtered carefully to avoid multicollinearity. "
-        "Correlation alone is only pairwise association, so the tree-based models and SHAP analysis in later tabs "
-        "fill in the picture by capturing how multiple features interact together."
+        f"Financial variables add a second, distinct risk channel. "
+        f"Tuition up-to-date is protective (**r = {corr_target_tuition:.3f}**), debtor status increases risk (**r = {corr_target_debtor:.3f}**), "
+        f"and scholarship status is also protective (**r = {corr_target_scholarship:.3f}**). "
+        "This matters because it explains cases where grades alone are not enough: two students with similar academic scores can still have different dropout risk if their financial pressure differs."
+    )
+    st.markdown(
+        f"Some variables partially overlap (for example, application mode and age at enrollment, **r = {corr_age_app_mode:.3f}**). "
+        "That overlap is exactly why I do train-only feature recheck before final modeling. "
+        "If we feed many near-duplicate predictors into linear models, coefficients become unstable and interpretation gets noisy. "
+        "Filtering high-correlation pairs and keeping the strongest signals improves model stability without throwing away the core predictive information."
+    )
+    st.markdown(
+        f"Modeling implication summary: I prioritize academic-progress + financial-status predictors because they show the clearest and most actionable association with dropout, "
+        f"treat coded-categorical correlations as directional hints (not strict linear magnitudes), and rely on out-of-sample validation to confirm what survives beyond pairwise correlation. "
+        f"Age at enrollment (**r = {corr_target_age:.3f}**) remains in that framework as a contextual risk modifier rather than a standalone decision rule."
     )
 
 
