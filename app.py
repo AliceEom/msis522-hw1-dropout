@@ -1684,7 +1684,34 @@ with tab4:
     if extra_insights:
         st.markdown("**Additional SHAP insights:** " + " ".join(extra_insights))
 
-    st.subheader("3.4 Interactive Prediction + Custom SHAP Waterfall")
+    st.subheader("3.4 Reference Waterfall Example from Test Set")
+    st.image(str(FIGURES / "part3_shap_waterfall_example.png"), width="stretch")
+    st.markdown(
+        "This reference case shows one high-risk student from the test set. "
+        "It demonstrates how multiple moderate risk factors can combine into a high final prediction, "
+        "not only one single extreme variable."
+    )
+    if reference_waterfall:
+        st.markdown(
+            f"Reference-case details: this example is test-row index **{reference_waterfall['reference_index']}**, "
+            f"with predicted dropout probability **{reference_waterfall['reference_probability']:.3f}** "
+            f"from **{model_label.get(best_tree_model, best_tree_model)}**."
+        )
+        risk_df = pd.DataFrame(reference_waterfall["top_risk"])
+        protect_df = pd.DataFrame(reference_waterfall["top_protective"])
+        if not risk_df.empty:
+            st.markdown("**Top risk-increasing contributors in this case (largest positive SHAP):**")
+            st.dataframe(risk_df, hide_index=True, width="stretch")
+        if not protect_df.empty:
+            st.markdown("**Top risk-reducing contributors in this case (largest negative SHAP):**")
+            st.dataframe(protect_df, hide_index=True, width="stretch")
+        st.markdown(
+            "Decision-maker interpretation for this case: if risk-increasing drivers are mainly academic, "
+            "prioritize tutoring/course-load intervention; if financial drivers dominate, prioritize payment counseling/support; "
+            "if both appear together, assign integrated support quickly because combined drivers usually indicate higher persistence risk."
+        )
+
+    st.subheader("3.5 Interactive Prediction + Custom SHAP Waterfall")
     model_options = ["logistic", "decision_tree", "random_forest", "lightgbm", "mlp_keras"]
     default_idx = model_options.index(best_tree_model) if best_tree_model in model_options else 2
     selected_model = st.selectbox("Select model for prediction", model_options, index=default_idx)
@@ -1749,31 +1776,4 @@ with tab4:
             "Waterfall reading tip: start at the baseline risk, then read bars from top to bottom. "
             "Bars to the right increase dropout risk; bars to the left reduce risk. "
             "The largest bars are the most actionable drivers for this student."
-        )
-
-    st.subheader("3.5 Reference Waterfall Example from Test Set")
-    st.image(str(FIGURES / "part3_shap_waterfall_example.png"), width="stretch")
-    st.markdown(
-        "This reference case shows one high-risk student from the test set. "
-        "It demonstrates how multiple moderate risk factors can combine into a high final prediction, "
-        "not only one single extreme variable."
-    )
-    if reference_waterfall:
-        st.markdown(
-            f"Reference-case details: this example is test-row index **{reference_waterfall['reference_index']}**, "
-            f"with predicted dropout probability **{reference_waterfall['reference_probability']:.3f}** "
-            f"from **{model_label.get(best_tree_model, best_tree_model)}**."
-        )
-        risk_df = pd.DataFrame(reference_waterfall["top_risk"])
-        protect_df = pd.DataFrame(reference_waterfall["top_protective"])
-        if not risk_df.empty:
-            st.markdown("**Top risk-increasing contributors in this case (largest positive SHAP):**")
-            st.dataframe(risk_df, hide_index=True, width="stretch")
-        if not protect_df.empty:
-            st.markdown("**Top risk-reducing contributors in this case (largest negative SHAP):**")
-            st.dataframe(protect_df, hide_index=True, width="stretch")
-        st.markdown(
-            "Decision-maker interpretation for this case: if risk-increasing drivers are mainly academic, "
-            "prioritize tutoring/course-load intervention; if financial drivers dominate, prioritize payment counseling/support; "
-            "if both appear together, assign integrated support quickly because combined drivers usually indicate higher persistence risk."
         )
