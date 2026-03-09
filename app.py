@@ -334,7 +334,8 @@ tab1, tab2, tab3, tab4 = st.tabs(
 
 
 with tab1:
-    st.subheader("Dataset and Prediction Task")
+    st.subheader("1.1 Dataset Introduction")
+    st.markdown("### Dataset and Prediction Task")
     st.markdown(
         "**Overview:** This project uses machine learning to predict which university students are likely to drop out "
         "based on academic, financial, and demographic information. "
@@ -427,11 +428,6 @@ with tab1:
 
 with tab2:
     st.header("Part 1: Descriptive Analytics")
-    st.subheader("1.1 Dataset Introduction")
-    st.markdown(
-        "Dataset context, target definition, feature types, and data-cleaning summary are provided in **Tab 1 (Executive Summary)** "
-        "to match the assignment requirement for a clear dataset introduction."
-    )
 
     st.subheader("1.2 Target Distribution")
 
