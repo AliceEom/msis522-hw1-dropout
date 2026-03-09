@@ -17,6 +17,8 @@ import seaborn as sns
 import shap
 import streamlit as st
 import tensorflow as tf
+import altair as alt
+from sklearn.metrics import roc_curve
 from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="Student Dropout Risk Modeling", layout="wide")
@@ -366,6 +368,51 @@ def load_models() -> Dict[str, Any]:
     }
 
 
+@st.cache_data
+def compute_interactive_roc_points(
+    _df: pd.DataFrame,
+    _feature_names: List[str],
+    _random_state: int = 42,
+) -> pd.DataFrame:
+    _, test_df = train_test_split(
+        _df,
+        test_size=0.30,
+        stratify=_df["Dropout_flag"],
+        random_state=_random_state,
+    )
+    X_test = test_df[_feature_names].copy()
+    y_test = test_df["Dropout_flag"].astype(int).to_numpy()
+    model_map = load_models()
+
+    display = {
+        "logistic": "Logistic Regression (Baseline)",
+        "decision_tree": "Decision Tree (CART)",
+        "random_forest": "Random Forest",
+        "lightgbm": "LightGBM (Boosted Tree)",
+        "mlp_keras": "MLP (Keras)",
+    }
+
+    rows: List[Dict[str, float]] = []
+    for model_key in ["logistic", "decision_tree", "random_forest", "lightgbm", "mlp_keras"]:
+        if model_key == "mlp_keras":
+            bundle = model_map["mlp_bundle"]
+            X_scaled = bundle["preprocess"].transform(X_test)
+            y_prob = model_map["mlp_keras"].predict(X_scaled, verbose=0).ravel()
+        else:
+            y_prob = model_map[model_key].predict_proba(X_test)[:, 1]
+        fpr, tpr, _ = roc_curve(y_test, y_prob)
+        for f, t in zip(fpr, tpr):
+            rows.append(
+                {
+                    "Model": display[model_key],
+                    "False Positive Rate": float(f),
+                    "True Positive Rate": float(t),
+                }
+            )
+
+    return pd.DataFrame(rows)
+
+
 def extract_pos_class_shap(shap_values: Any, expected_value: Any) -> Tuple[np.ndarray, float]:
     if isinstance(shap_values, list):
         values = shap_values[1] if len(shap_values) > 1 else shap_values[0]
@@ -663,6 +710,11 @@ missing_total = int(df.isna().sum().sum())
 duplicate_rows = int(df.duplicated().sum())
 
 feature_names = meta["feature_selection"]["final_features"]
+roc_points_df = compute_interactive_roc_points(
+    df,
+    feature_names,
+    int(meta.get("random_state", 42)),
+)
 feature_selection_meta = meta.get("feature_selection", {})
 selected_18_rechecked = feature_selection_meta.get("selected_18_rechecked", [])
 selected_10_candidate = feature_selection_meta.get("selected_10", [])
@@ -867,6 +919,34 @@ with tab2:
 
     st.image(str(FIGURES / "part1_target_distribution.png"), width="stretch")
     st.caption(captions["target_distribution"])
+    target_counts_df = (
+        df["Dropout_flag"]
+        .value_counts()
+        .rename_axis("Dropout_flag")
+        .reset_index(name="Count")
+        .sort_values("Dropout_flag")
+        .reset_index(drop=True)
+    )
+    target_counts_df["Outcome"] = target_counts_df["Dropout_flag"].map({0: "Non-dropout (0)", 1: "Dropout (1)"})
+    target_counts_df["Rate"] = target_counts_df["Count"] / float(target_counts_df["Count"].sum())
+    st.markdown("**Interactive view (hover for exact counts and ratios):**")
+    target_chart = (
+        alt.Chart(target_counts_df)
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .encode(
+            x=alt.X("Outcome:N", title="Class"),
+            y=alt.Y("Count:Q", title="Count"),
+            color=alt.Color("Outcome:N", legend=None, scale=alt.Scale(range=["#4C72B0", "#C44E52"])),
+            tooltip=[
+                alt.Tooltip("Outcome:N"),
+                alt.Tooltip("Count:Q", format=","),
+                alt.Tooltip("Rate:Q", format=".1%"),
+            ],
+        )
+        .properties(height=300)
+        .interactive()
+    )
+    st.altair_chart(target_chart, use_container_width=True)
     st.markdown(
         f"Observed class mix: **Dropout = {eda_highlights['dropout_rate']:.1%}** and **Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**. "
         "This confirms that F1/AUC are more reliable than accuracy alone for model selection."
@@ -1047,6 +1127,26 @@ with tab2:
         "Focused heatmap using the top target-linked variables (highest |correlation with `Dropout_flag`) plus the target. "
         "This view improves readability for interpretation."
     )
+    corr_focus_df = df[focus_corr_columns].corr().reset_index().rename(columns={"index": "Feature_Y"})
+    corr_focus_long = corr_focus_df.melt(id_vars="Feature_Y", var_name="Feature_X", value_name="Correlation")
+    st.markdown("**Interactive focused heatmap (hover to inspect each pair):**")
+    corr_chart = (
+        alt.Chart(corr_focus_long)
+        .mark_rect()
+        .encode(
+            x=alt.X("Feature_X:N", title="", sort=focus_corr_columns, axis=alt.Axis(labelAngle=-35)),
+            y=alt.Y("Feature_Y:N", title="", sort=focus_corr_columns),
+            color=alt.Color("Correlation:Q", scale=alt.Scale(scheme="redblue", domain=[-1, 1])),
+            tooltip=[
+                alt.Tooltip("Feature_Y:N", title="Row"),
+                alt.Tooltip("Feature_X:N", title="Column"),
+                alt.Tooltip("Correlation:Q", format=".3f"),
+            ],
+        )
+        .properties(height=420)
+        .interactive()
+    )
+    st.altair_chart(corr_chart, use_container_width=True)
     if not np.isnan(top_target_corr):
         st.markdown(
             f"Strongest target-linked variable in the full numeric set: **{top_target_feature}** "
@@ -1482,6 +1582,27 @@ with tab3:
         .reset_index(drop=True)
     )
     st.dataframe(summary_df, hide_index=True, width="stretch")
+    st.markdown("**Interactive metric explorer:**")
+    selected_metric = st.selectbox(
+        "Choose metric for interactive comparison",
+        metric_cols,
+        index=3,
+        key="metric_explorer_tab3",
+    )
+    metric_chart_df = summary_df[["Model", selected_metric]].sort_values(selected_metric, ascending=False).copy()
+    metric_chart = (
+        alt.Chart(metric_chart_df)
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+        .encode(
+            x=alt.X("Model:N", sort="-y", axis=alt.Axis(labelAngle=-20)),
+            y=alt.Y(f"{selected_metric}:Q", title=selected_metric, scale=alt.Scale(domain=[0, 1])),
+            color=alt.Color(f"{selected_metric}:Q", legend=None, scale=alt.Scale(scheme="tealblues")),
+            tooltip=[alt.Tooltip("Model:N"), alt.Tooltip(f"{selected_metric}:Q", format=".3f")],
+        )
+        .properties(height=320)
+        .interactive()
+    )
+    st.altair_chart(metric_chart, use_container_width=True)
 
     # F1 chart with zoomed y-range so close scores are still visually distinguishable.
     fig_f1, ax_f1 = plt.subplots(figsize=(10, 4.8))
@@ -1651,6 +1772,39 @@ with tab3:
         with col:
             st.markdown(f"**{label}**")
             st.image(str(FIGURES / fn), width="stretch")
+    st.markdown("**Interactive ROC explorer (model selector + hover):**")
+    roc_model_selected = st.selectbox(
+        "Choose model for interactive ROC view",
+        summary_df["Model"].tolist(),
+        index=0,
+        key="roc_explorer_tab3",
+    )
+    roc_selected_df = roc_points_df[roc_points_df["Model"] == roc_model_selected].copy()
+    roc_diagonal_df = pd.DataFrame(
+        {
+            "False Positive Rate": [0.0, 1.0],
+            "True Positive Rate": [0.0, 1.0],
+        }
+    )
+    roc_line = (
+        alt.Chart(roc_selected_df)
+        .mark_line(strokeWidth=2.5, color="#1f77b4")
+        .encode(
+            x=alt.X("False Positive Rate:Q", scale=alt.Scale(domain=[0, 1])),
+            y=alt.Y("True Positive Rate:Q", scale=alt.Scale(domain=[0, 1])),
+            tooltip=[
+                alt.Tooltip("Model:N"),
+                alt.Tooltip("False Positive Rate:Q", format=".3f"),
+                alt.Tooltip("True Positive Rate:Q", format=".3f"),
+            ],
+        )
+    )
+    roc_diag = (
+        alt.Chart(roc_diagonal_df)
+        .mark_line(color="#999999", strokeDash=[6, 4])
+        .encode(x="False Positive Rate:Q", y="True Positive Rate:Q")
+    )
+    st.altair_chart((roc_diag + roc_line).properties(height=330).interactive(), use_container_width=True)
     auc_rank = summary_df[["Model", "AUC-ROC"]].sort_values("AUC-ROC", ascending=False).reset_index(drop=True)
     if len(auc_rank) >= 2:
         auc_gap = float(auc_rank.loc[0, "AUC-ROC"] - auc_rank.loc[1, "AUC-ROC"])
