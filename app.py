@@ -159,19 +159,24 @@ def make_second_sem_violin_figure(df: pd.DataFrame) -> plt.Figure:
 def make_full_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[str]) -> plt.Figure:
     corr = df[corr_cols].corr()
 
-    fig, ax = plt.subplots(figsize=(16, 12))
+    fig, ax = plt.subplots(figsize=(24, 20))
     sns.heatmap(
         corr,
         cmap="coolwarm",
         center=0,
+        annot=True,
+        fmt=".2f",
+        annot_kws={"size": 4},
         cbar_kws={"shrink": 0.8},
+        linewidths=0.15,
+        linecolor="white",
         xticklabels=True,
         yticklabels=True,
         ax=ax,
     )
     ax.set_title("Full Correlation Heatmap (All Numeric Columns)")
-    ax.tick_params(axis="x", labelrotation=90, labelsize=8)
-    ax.tick_params(axis="y", labelrotation=0, labelsize=8)
+    ax.tick_params(axis="x", labelrotation=90, labelsize=7)
+    ax.tick_params(axis="y", labelrotation=0, labelsize=7)
     plt.tight_layout()
     return fig
 
@@ -184,8 +189,12 @@ def make_focused_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[st
         corr,
         cmap="coolwarm",
         center=0,
-        annot=False,
+        annot=True,
+        fmt=".2f",
+        annot_kws={"size": 7},
         cbar_kws={"shrink": 0.85},
+        linewidths=0.2,
+        linecolor="white",
         xticklabels=True,
         yticklabels=True,
         ax=ax,
