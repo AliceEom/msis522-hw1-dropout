@@ -133,9 +133,15 @@ def ensure_dirs(paths: Paths) -> None:
 
 def set_seed(seed: int = RANDOM_STATE) -> None:
     os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ["TF_DETERMINISTIC_OPS"] = "1"
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
+    tf.keras.utils.set_random_seed(seed)
+    try:
+        tf.config.experimental.enable_op_determinism()
+    except Exception:
+        pass
 
 
 def clean_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -694,6 +700,7 @@ def main() -> None:
     for hidden in tuning_grid["hidden_layers"]:
         for lr in tuning_grid["learning_rate"]:
             for dr in tuning_grid["dropout_rate"]:
+                set_seed(RANDOM_STATE)
                 tf.keras.backend.clear_session()
                 model = build_keras_mlp(
                     input_dim=X_train_scaled.shape[1],
@@ -719,6 +726,7 @@ def main() -> None:
                     verbose=0,
                     callbacks=callbacks,
                     class_weight=class_weights,
+                    shuffle=True,
                 )
 
                 val_prob = model.predict(X_val, verbose=0).ravel()
@@ -758,6 +766,7 @@ def main() -> None:
     assert best_combo is not None
     best_hidden, best_lr, best_dr = best_combo
 
+    set_seed(RANDOM_STATE)
     tf.keras.backend.clear_session()
     mlp_model = build_keras_mlp(
         input_dim=X_train_scaled.shape[1],
@@ -783,6 +792,7 @@ def main() -> None:
         verbose=0,
         callbacks=callbacks,
         class_weight=class_weights,
+        shuffle=True,
     )
 
     mlp_prob = mlp_model.predict(X_test_scaled, verbose=0).ravel()

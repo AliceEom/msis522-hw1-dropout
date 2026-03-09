@@ -19,9 +19,9 @@
     "model__n_estimators": 50
   },
   "mlp_keras": {
-    "hidden_layers": "(64, 64)",
+    "hidden_layers": "(128, 64)",
     "learning_rate": 0.0005,
     "dropout_rate": 0.2,
-    "best_validation_f1": 0.7932692307692307
+    "best_validation_f1": 0.7903614457831325
   }
 }

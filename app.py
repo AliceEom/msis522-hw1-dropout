@@ -730,6 +730,11 @@ with tab3:
         "Target is encoded as `Dropout_flag` (1/0), then data is split with a stratified 70/30 train-test split (`random_state=42`). "
         "Missing values are imputed; scaling is applied where needed (logistic/MLP), and all feature recheck and tuning decisions are performed on training data to prevent leakage."
     )
+    st.markdown(
+        "Tuning/evaluation protocol: Decision Tree, Random Forest, and LightGBM are tuned with **5-fold Stratified CV** "
+        "on the training split only (`random_state=42`); MLP hyperparameters are tuned with a **train-only hold-out validation split**; "
+        "final model metrics are reported once on the untouched **30% test set**."
+    )
     st.subheader("Imbalanced-Data Handling")
     st.markdown(
         f"The binary target is imbalanced (**Dropout = {eda_highlights['dropout_rate']:.1%}**, "
