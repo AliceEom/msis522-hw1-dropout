@@ -506,9 +506,17 @@ with tab2:
         "In practical terms, students in the lowest performance quartile should be prioritized for early support."
     )
     st.markdown(
+        "How to read this chart: "
+        "1) students are sorted by first-semester grade, "
+        "2) then split into four equal-size groups (Q1 to Q4), and "
+        "3) each bar shows the dropout percentage inside that group. "
+        "So this is a risk-by-group view, not raw grade values on the y-axis."
+    )
+    st.markdown(
         f"Financial signals show a similar risk pattern: debtors have **{eda_highlights['dropout_debtor_1']:.1%}** dropout "
         f"vs **{eda_highlights['dropout_debtor_0']:.1%}** for non-debtors; scholarship holders have **{eda_highlights['dropout_scholar_1']:.1%}** "
-        f"vs **{eda_highlights['dropout_scholar_0']:.1%}** for non-holders."
+        f"vs **{eda_highlights['dropout_scholar_0']:.1%}** for non-holders. "
+        "These financial differences are visualized directly in the two charts right below."
     )
 
     st.subheader("Additional Relationship Views")
