@@ -512,6 +512,46 @@ def compute_shap_interpretation(
     return output
 
 
+@st.cache_data
+def compute_reference_waterfall_details(
+    _df: pd.DataFrame,
+    _feature_names: List[str],
+    _best_tree_model: str,
+) -> Dict[str, Any]:
+    model_map = load_models()
+    tree_pipe = model_map[_best_tree_model]
+
+    X_raw = _df[_feature_names].copy()
+    probs = tree_pipe.predict_proba(X_raw)[:, 1]
+    ref_idx = int(np.argmax(probs))
+
+    X_trans = tree_pipe.named_steps["preprocess"].transform(X_raw)
+    X_trans_df = pd.DataFrame(X_trans, columns=_feature_names)
+
+    tree_model = tree_pipe.named_steps["model"]
+    explainer = shap.TreeExplainer(tree_model)
+    shap_raw = explainer.shap_values(X_trans_df.iloc[[ref_idx]])
+    shap_values, _ = extract_pos_class_shap(shap_raw, explainer.expected_value)
+    row_shap = np.array(shap_values[0], dtype=float)
+
+    detail_df = pd.DataFrame(
+        {
+            "Feature": _feature_names,
+            "Feature Value": X_trans_df.iloc[ref_idx].values,
+            "SHAP Value": row_shap,
+        }
+    )
+    top_risk = detail_df.sort_values("SHAP Value", ascending=False).head(3).copy()
+    top_protective = detail_df.sort_values("SHAP Value", ascending=True).head(3).copy()
+
+    return {
+        "reference_index": ref_idx,
+        "reference_probability": float(probs[ref_idx]),
+        "top_risk": top_risk.to_dict(orient="records"),
+        "top_protective": top_protective.to_dict(orient="records"),
+    }
+
+
 meta = load_metadata()
 metrics = load_metrics()
 best_params = load_best_params()
@@ -555,6 +595,7 @@ target_corr_abs = (
 top_target_feature = str(target_corr_abs.index[0]) if len(target_corr_abs) else "N/A"
 top_target_corr = float(corr_full.loc[top_target_feature, "Dropout_flag"]) if len(target_corr_abs) else float("nan")
 shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
+reference_waterfall = compute_reference_waterfall_details(df, feature_names, best_tree_model)
 eda_highlights = compute_eda_highlights(df)
 tradeoff_text = build_model_tradeoff_text(comparison_df)
 original_counts = meta["dataset_stats"].get("target_counts_original", {})
@@ -1582,3 +1623,22 @@ with tab4:
         "It demonstrates how multiple moderate risk factors can combine into a high final prediction, "
         "not only one single extreme variable."
     )
+    if reference_waterfall:
+        st.markdown(
+            f"Reference-case details: this example is test-row index **{reference_waterfall['reference_index']}**, "
+            f"with predicted dropout probability **{reference_waterfall['reference_probability']:.3f}** "
+            f"from **{model_label.get(best_tree_model, best_tree_model)}**."
+        )
+        risk_df = pd.DataFrame(reference_waterfall["top_risk"])
+        protect_df = pd.DataFrame(reference_waterfall["top_protective"])
+        if not risk_df.empty:
+            st.markdown("**Top risk-increasing contributors in this case (largest positive SHAP):**")
+            st.dataframe(risk_df, hide_index=True, width="stretch")
+        if not protect_df.empty:
+            st.markdown("**Top risk-reducing contributors in this case (largest negative SHAP):**")
+            st.dataframe(protect_df, hide_index=True, width="stretch")
+        st.markdown(
+            "Decision-maker interpretation for this case: if risk-increasing drivers are mainly academic, "
+            "prioritize tutoring/course-load intervention; if financial drivers dominate, prioritize payment counseling/support; "
+            "if both appear together, assign integrated support quickly because combined drivers usually indicate higher persistence risk."
+        )
