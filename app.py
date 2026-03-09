@@ -911,11 +911,15 @@ with tab1:
 
     ds = meta["dataset_stats"]
     st.subheader("Quick Dataset Stats")
+    original_total_columns = int(ds["columns"]) - 2
+    original_predictor_columns = max(0, original_total_columns - 1)
     st.dataframe(
         pd.DataFrame(
             {
                 "Students": [ds["rows"]],
-                "Original UCI Features": [ds["columns"] - 2],
+                "Original UCI Predictors": [original_predictor_columns],
+                "Original UCI Target Columns": [1],
+                "Original UCI Total Columns": [original_total_columns],
                 "Dropout Rate": [round(ds["target_ratio_binary"]["1"], 4)],
                 "Non-dropout Rate": [round(ds["target_ratio_binary"]["0"], 4)],
             }
