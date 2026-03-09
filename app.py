@@ -845,9 +845,14 @@ with tab3:
         )
 
     baseline_f1 = float(metrics.get("logistic", {}).get("f1", np.nan))
+    baseline_auc = float(metrics.get("logistic", {}).get("auc", np.nan))
+    baseline_precision = float(metrics.get("logistic", {}).get("precision", np.nan))
+    baseline_recall = float(metrics.get("logistic", {}).get("recall", np.nan))
+    baseline_accuracy = float(metrics.get("logistic", {}).get("accuracy", np.nan))
     best_row_by_f1 = comparison_df.sort_values("f1", ascending=False).iloc[0]
     best_model_name = str(best_row_by_f1["model"])
     best_model_f1 = float(best_row_by_f1["f1"])
+    best_model_auc = float(best_row_by_f1["auc"])
 
     st.subheader("2.1 Data Preparation")
     st.markdown(
@@ -943,6 +948,22 @@ with tab3:
     )
     st.dataframe(one_row_metrics("logistic", "Logistic Regression (Baseline)"), hide_index=True, width="stretch")
     st.image(str(FIGURES / "part2_roc_logistic.png"), width="stretch")
+    st.markdown(
+        f"Result interpretation: Logistic baseline reaches **Accuracy {baseline_accuracy:.3f}**, **Precision {baseline_precision:.3f}**, "
+        f"**Recall {baseline_recall:.3f}**, **F1 {baseline_f1:.3f}**, and **AUC {baseline_auc:.3f}** on the held-out test set."
+    )
+    st.markdown(
+        "This is a strong baseline for this dataset: recall is relatively high, so the model catches many at-risk students, "
+        "while AUC above 0.90 indicates good ranking ability across thresholds. "
+        "Precision is lower than recall, which means the model is intentionally more sensitive (more alerts, including some false positives)."
+    )
+    if not np.isnan(baseline_f1):
+        st.markdown(
+            f"Baseline role: every later model is judged against this reference. "
+            f"Current best F1 model is **{best_model_name}** with **F1 {best_model_f1:.3f}** "
+            f"(improvement **{best_model_f1 - baseline_f1:+.3f}** over Logistic) and **AUC {best_model_auc:.3f}** "
+            f"(delta **{best_model_auc - baseline_auc:+.3f}**)."
+        )
 
     st.subheader("2.3 Decision Tree (GridSearchCV, 5-fold)")
     st.markdown(
