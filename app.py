@@ -102,6 +102,29 @@ def make_grade_band_dropout_figure(df: pd.DataFrame) -> plt.Figure:
     return fig
 
 
+def make_second_sem_violin_figure(df: pd.DataFrame) -> plt.Figure:
+    tmp = df[["Dropout_flag", "Curricular units 2nd sem (grade)"]].dropna().copy()
+    tmp["Outcome"] = tmp["Dropout_flag"].map({0: "Non-dropout", 1: "Dropout"})
+
+    fig, ax = plt.subplots(figsize=(8.2, 4.8))
+    sns.violinplot(
+        data=tmp,
+        x="Outcome",
+        y="Curricular units 2nd sem (grade)",
+        order=["Non-dropout", "Dropout"],
+        inner="quartile",
+        cut=0,
+        palette={"Non-dropout": "#4C78A8", "Dropout": "#F58518"},
+        ax=ax,
+    )
+    ax.set_title("2nd-Semester Grade Distribution by Outcome (Violin Plot)")
+    ax.set_xlabel("")
+    ax.set_ylabel("2nd-Semester Grade")
+    ax.grid(axis="y", alpha=0.25)
+    plt.tight_layout()
+    return fig
+
+
 @st.cache_data
 def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
     tmp = df.copy()
@@ -129,6 +152,8 @@ def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
 
     out["first_sem_non_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 0, "Curricular units 1st sem (grade)"].mean())
     out["first_sem_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 1, "Curricular units 1st sem (grade)"].mean())
+    out["second_sem_non_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 0, "Curricular units 2nd sem (grade)"].mean())
+    out["second_sem_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 1, "Curricular units 2nd sem (grade)"].mean())
 
     q = pd.qcut(
         tmp["Curricular units 1st sem (grade)"],
@@ -166,6 +191,7 @@ def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
 
     add_box_stats("Admission grade", "admission")
     add_box_stats("Curricular units 1st sem (grade)", "first_sem")
+    add_box_stats("Curricular units 2nd sem (grade)", "second_sem")
     return out
 
 
@@ -532,6 +558,25 @@ with tab2:
             f"and **{eda_highlights['first_sem_non_dropout_outlier_rate']:.1%}** in the non-dropout group. "
             "The larger center gap than in admission scores suggests first-semester performance is a much sharper early-separation signal."
         )
+
+    fig_second_sem_violin = make_second_sem_violin_figure(df)
+    st.pyplot(fig_second_sem_violin, clear_figure=True)
+    plt.close(fig_second_sem_violin)
+    st.caption(
+        "Violin plot of second-semester grades by outcome. "
+        "This view adds distribution shape (density), quartile lines, and tail spread beyond a standard boxplot summary."
+    )
+    st.markdown(
+        f"Second-semester performance shows a clear shift: mean grade is **{eda_highlights['second_sem_dropout']:.2f}** for dropout students "
+        f"versus **{eda_highlights['second_sem_non_dropout']:.2f}** for non-dropout students."
+    )
+    st.markdown(
+        f"The dropout violin is concentrated at lower grades, while non-dropout students have a higher center "
+        f"(median **{eda_highlights['second_sem_dropout_median']:.2f}** vs **{eda_highlights['second_sem_non_dropout_median']:.2f}**) "
+        f"and tighter middle spread (IQR **{eda_highlights['second_sem_dropout_iqr']:.2f}** vs **{eda_highlights['second_sem_non_dropout_iqr']:.2f}**). "
+        "The dropout-group median of 0 indicates many students in this group have extremely low second-semester performance. "
+        "This supports using semester-grade trajectories as an operational early-warning signal."
+    )
 
     fig_grade_band = make_grade_band_dropout_figure(df)
     st.pyplot(fig_grade_band, clear_figure=True)
