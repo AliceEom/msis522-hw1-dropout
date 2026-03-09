@@ -713,7 +713,7 @@ with tab1:
     st.markdown(
         "The raw CSV is semicolon-delimited, so the pipeline first standardizes column formatting and harmonizes types for modeling. "
         f"Data-quality checks on this submission dataset show **{missing_total} missing values** and **{duplicate_rows} duplicate rows**. "
-        "Categorical-style fields were converted into model-ready numeric representations to match algorithm input requirements. "
+        "Categorical-style fields were converted into model-ready numeric representations so each model can consume the same feature matrix consistently. "
         "For prediction, the original 3-class target is converted to a binary early-warning target focused on dropout risk."
     )
     st.markdown(
@@ -746,7 +746,7 @@ with tab1:
         f"versus **{eda_highlights['first_sem_non_dropout']:.2f}** in the non-dropout group."
     )
     st.markdown(
-        "The final app surfaces all required outputs: Part 1 visuals and interpretations, Part 2 metrics/ROC/hyperparameters, and Part 3 SHAP global + local explanations. "
+        "The final app brings together Part 1 visuals and interpretations, Part 2 model metrics/ROC/hyperparameters, and Part 3 SHAP global + local explanations. "
         "Interactive prediction allows a user to set key feature values and inspect both predicted risk and feature-level contribution via SHAP waterfall."
     )
 
@@ -1085,7 +1085,7 @@ with tab3:
     )
     st.markdown(
         "**Preprocessing used (and why):**\n"
-        "1. **Type handling/encoding:** predictors are loaded as numeric values; category-coded variables in this dataset are already integer-coded, so one-hot encoding is not required.\n"
+        "1. **Type handling/encoding:** predictors are loaded as numeric values; category-coded variables in this dataset are already integer-coded, so one-hot encoding was unnecessary for this pipeline.\n"
         "2. **Missing values:** median imputation is applied to keep all rows and avoid dropping minority-risk cases.\n"
         "3. **Scaling:** `StandardScaler` is applied for Logistic Regression and MLP (scale-sensitive models); tree-based models use imputation only.\n"
         "4. **Leakage control:** feature recheck, CV tuning, and preprocessing fit happen on training data; test data is used only once for final evaluation."
@@ -1148,7 +1148,7 @@ with tab3:
     st.subheader("2.2 Logistic Regression Baseline")
     st.markdown(
         "Classification baseline model is Logistic Regression. "
-        "Required test metrics (Accuracy, Precision, Recall, F1, AUC-ROC) are reported below."
+        "The test report includes Accuracy, Precision, Recall, F1, and AUC-ROC."
     )
     st.dataframe(one_row_metrics("logistic", "Logistic Regression (Baseline)"), hide_index=True, width="stretch")
     st.image(str(FIGURES / "part2_roc_logistic.png"), width="stretch")
@@ -1162,7 +1162,7 @@ with tab3:
         "Precision is lower than recall, which means the model is intentionally more sensitive (more alerts, including some false positives)."
     )
     st.markdown(
-        "Baseline role: this logistic model defines the minimum benchmark. "
+        "Baseline role: this logistic model is the reference point for comparing later models. "
         "Cross-model improvement is evaluated in Section 2.7 after all candidate models are presented."
     )
 
@@ -1294,7 +1294,7 @@ with tab3:
     st.markdown(
         f"Framework: **Keras (TensorFlow backend)**. "
         f"Input layer size matches the final feature dimension (`input_dim = {len(feature_names)}`). "
-        "Network design follows assignment minimums: two hidden ReLU layers plus a sigmoid output layer for binary classification."
+        "We build the network with two dense ReLU hidden layers and a sigmoid output, then tune hidden width/dropout/learning-rate and keep the best validation-F1 configuration."
     )
     st.markdown(
         "Training setup: `binary_crossentropy` loss, `Adam` optimizer, class weights for imbalance handling, "
@@ -1575,7 +1575,7 @@ with tab4:
             width="stretch",
         )
 
-    st.subheader("3.3 Required Interpretation")
+    st.subheader("3.3 SHAP Interpretation")
     top_feature_names = ", ".join([f"`{x['feature']}`" for x in shap_interpretation])
     direction_sentence = "; ".join([f"`{x['feature']}` -> {x['direction']}" for x in shap_interpretation])
     st.markdown(
