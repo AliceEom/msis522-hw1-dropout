@@ -563,7 +563,6 @@ with tab2:
         "These financial differences are visualized directly in the charts right below."
     )
 
-    st.subheader("Additional Relationship Views")
     col_c, col_d, col_e = st.columns(3)
     with col_c:
         fig_debtor = make_dropout_rate_figure(
