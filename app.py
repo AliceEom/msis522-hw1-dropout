@@ -194,6 +194,11 @@ def compute_eda_highlights(df: pd.DataFrame) -> Dict[str, float]:
     out["first_sem_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 1, "Curricular units 1st sem (grade)"].mean())
     out["second_sem_non_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 0, "Curricular units 2nd sem (grade)"].mean())
     out["second_sem_dropout"] = float(tmp.loc[tmp["Dropout_flag"] == 1, "Curricular units 2nd sem (grade)"].mean())
+    out["second_sem_mean_gap"] = out["second_sem_non_dropout"] - out["second_sem_dropout"]
+    sec_dropout = tmp.loc[tmp["Dropout_flag"] == 1, "Curricular units 2nd sem (grade)"].dropna()
+    sec_non_dropout = tmp.loc[tmp["Dropout_flag"] == 0, "Curricular units 2nd sem (grade)"].dropna()
+    out["second_sem_dropout_zero_rate"] = float((sec_dropout == 0).mean()) if len(sec_dropout) else float("nan")
+    out["second_sem_non_dropout_zero_rate"] = float((sec_non_dropout == 0).mean()) if len(sec_non_dropout) else float("nan")
 
     q = pd.qcut(
         tmp["Curricular units 1st sem (grade)"],
@@ -617,16 +622,19 @@ with tab2:
         "Each side shows the density shape for one group, with quartile lines to summarize center and spread."
     )
     st.markdown(
-        f"Second-semester performance shows a clear shift: mean grade is **{eda_highlights['second_sem_dropout']:.2f}** for dropout students "
-        f"versus **{eda_highlights['second_sem_non_dropout']:.2f}** for non-dropout students."
+        f"Second-semester results separate the groups very clearly: the mean is **{eda_highlights['second_sem_dropout']:.2f}** in the dropout group "
+        f"versus **{eda_highlights['second_sem_non_dropout']:.2f}** in the non-dropout group "
+        f"(a gap of **{eda_highlights['second_sem_mean_gap']:.2f}** points)."
     )
     st.markdown(
-        f"The dropout violin is concentrated at lower grades, while non-dropout students have a higher center "
-        f"(median **{eda_highlights['second_sem_dropout_median']:.2f}** vs **{eda_highlights['second_sem_non_dropout_median']:.2f}**) "
-        f"and tighter middle spread (IQR **{eda_highlights['second_sem_dropout_iqr']:.2f}** vs **{eda_highlights['second_sem_non_dropout_iqr']:.2f}**). "
-        "The dropout-group median of 0 indicates many students in this group have extremely low second-semester performance, "
-        "which is why that side appears wider near zero. "
-        "This supports using semester-grade trajectories as an operational early-warning signal."
+        f"The left side is wide near zero because **{eda_highlights['second_sem_dropout_zero_rate']:.1%}** of dropout students have a second-semester grade of 0, "
+        f"compared with only **{eda_highlights['second_sem_non_dropout_zero_rate']:.1%}** in the non-dropout group. "
+        f"This matches the center statistics (median **{eda_highlights['second_sem_dropout_median']:.2f}** vs **{eda_highlights['second_sem_non_dropout_median']:.2f}**)."
+    )
+    st.markdown(
+        "Practical takeaway: this is not a small shift. "
+        "If a student reaches very low or zero second-semester performance, treat it as a high-priority intervention trigger "
+        "(advisor outreach + academic support + financial check) rather than waiting for later outcomes."
     )
 
     fig_grade_band = make_grade_band_dropout_figure(df)
