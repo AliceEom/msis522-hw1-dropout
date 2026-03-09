@@ -2047,33 +2047,34 @@ with tab4:
         with m3:
             st.metric("Predicted Class", pred_label)
 
-        fig_prob, ax_prob = plt.subplots(figsize=(6.8, 3.3))
         prob_df = pd.DataFrame(
             {
                 "Outcome": ["Non-dropout (0)", "Dropout (1)"],
                 "Probability": [1 - prob, prob],
             }
         )
-        sns.barplot(data=prob_df, x="Outcome", y="Probability", palette=["#86b37b", "#d97373"], ax=ax_prob)
-        ax_prob.axhline(
-            float(prediction_threshold),
-            color="black",
-            linestyle="--",
-            linewidth=1.1,
-            label=f"Threshold = {prediction_threshold:.2f}",
+        threshold_df = pd.DataFrame({"Threshold": [float(prediction_threshold)]})
+        prob_chart = (
+            alt.Chart(prob_df)
+            .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+            .encode(
+                x=alt.X("Outcome:N", title=""),
+                y=alt.Y("Probability:Q", scale=alt.Scale(domain=[0, 1]), title="Probability"),
+                color=alt.Color("Outcome:N", legend=None, scale=alt.Scale(range=["#86b37b", "#d97373"])),
+                tooltip=[
+                    alt.Tooltip("Outcome:N"),
+                    alt.Tooltip("Probability:Q", format=".3f"),
+                ],
+            )
         )
-        for idx, val in enumerate(prob_df["Probability"].tolist()):
-            ax_prob.text(idx, float(val) + 0.015, f"{val:.3f}", ha="center", va="bottom", fontsize=9)
-        ax_prob.set_ylim(0, 1.05)
-        ax_prob.set_ylabel("Probability")
-        ax_prob.set_xlabel("")
-        ax_prob.legend(loc="upper right")
-        ax_prob.grid(axis="y", alpha=0.25)
-        plt.tight_layout()
-        st.pyplot(fig_prob, clear_figure=True)
-        plt.close(fig_prob)
+        threshold_line = (
+            alt.Chart(threshold_df)
+            .mark_rule(color="black", strokeDash=[6, 4])
+            .encode(y=alt.Y("Threshold:Q"))
+        )
+        st.altair_chart((prob_chart + threshold_line).properties(height=290).interactive(), use_container_width=True)
         st.caption(
-            "Interactive probability chart: bars update with your inputs, and the dashed line shows the current decision threshold."
+            "Interactive probability chart: hover for exact values. The dashed line is the current decision threshold."
         )
 
         if selected_model in {"decision_tree", "random_forest", "lightgbm"}:
@@ -2097,6 +2098,29 @@ with tab4:
             "The largest bars are the most actionable drivers for this student."
         )
         top_pos, top_neg = compute_custom_shap_contributions(shap_model, row_df, feature_names, models, top_n=5)
+        contrib_df = pd.concat([top_pos, top_neg], ignore_index=True).drop_duplicates(subset=["Feature"]).copy()
+        if not contrib_df.empty:
+            contrib_df["Direction"] = np.where(contrib_df["SHAP Value"] >= 0, "Risk-increasing", "Risk-reducing")
+            contrib_chart = (
+                alt.Chart(contrib_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("SHAP Value:Q", title="SHAP Value"),
+                    y=alt.Y("Feature:N", sort=alt.SortField(field="SHAP Value", order="descending"), title=""),
+                    color=alt.Color("Direction:N", scale=alt.Scale(range=["#d97373", "#4c9f70"])),
+                    tooltip=[
+                        alt.Tooltip("Feature:N"),
+                        alt.Tooltip("Input Value:Q", format=".3f"),
+                        alt.Tooltip("SHAP Value:Q", format=".4f"),
+                        alt.Tooltip("Direction:N"),
+                    ],
+                )
+                .properties(height=280)
+                .interactive()
+            )
+            st.markdown("**Interactive SHAP contribution chart for this custom input**")
+            st.altair_chart(contrib_chart, use_container_width=True)
+
         c_pos, c_neg = st.columns(2)
         with c_pos:
             st.markdown("**Top risk-increasing drivers for this custom input**")
