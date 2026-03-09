@@ -385,6 +385,14 @@ with tab2:
         f"Observed class mix: **Dropout = {eda_highlights['dropout_rate']:.1%}** and **Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**. "
         "This confirms that F1/AUC are more reliable than accuracy alone for model selection."
     )
+    st.markdown(
+        "This is a **classification** target, so a class-frequency bar chart is the correct plot for Section 1.2. "
+        "Histogram/KDE plots are used for continuous regression targets."
+    )
+    st.markdown(
+        "Interpretation for 1.2: the target distribution is skewed toward the non-dropout class. "
+        "For a categorical target, outliers are not interpreted the same way as in continuous targets; the main issue is class imbalance."
+    )
     if original_counts:
         enrolled_n = int(original_counts.get("Enrolled", 0))
         graduate_n = int(original_counts.get("Graduate", 0))
@@ -447,10 +455,14 @@ with tab3:
     st.markdown(
         f"The binary target is imbalanced (**Dropout = {eda_highlights['dropout_rate']:.1%}**, "
         f"**Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**). "
-        "To address this, the workflow uses: "
-        "(1) stratified train/test split, "
-        "(2) class-weighted learning (`class_weight='balanced'` for logistic, decision tree, random forest, and LightGBM; computed class weights for MLP), and "
-        "(3) model comparison based on F1 and AUC so minority-class performance is not hidden by overall accuracy."
+        "Our handling strategy is practical and model-consistent: "
+        "(1) **stratified split** preserves the same class ratio in train and test; "
+        "(2) **class-weighted learning** penalizes dropout-class errors more (`class_weight='balanced'` for logistic/tree/forest/LightGBM, and computed class weights for MLP); "
+        "(3) **selection by F1 and AUC** keeps the focus on minority-class detection quality instead of accuracy-only ranking; "
+        "(4) **precision/recall trade-off review** is reported for each model so intervention policy can choose conservative vs aggressive alerting."
+    )
+    st.markdown(
+        "We intentionally did not rely on random oversampling in this submission, because weighted objectives already improved minority sensitivity while keeping the pipeline simple and reproducible."
     )
 
     st.subheader("2.7 Model Comparison Summary")
