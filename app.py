@@ -744,19 +744,19 @@ with tab1:
     st.subheader("1.1 Dataset Introduction")
     st.markdown("### Dataset and Prediction Task")
     st.markdown(
-        "**Overview:** This project uses machine learning to predict which university students are likely to drop out "
+        "**Overview:** In this individual project, I use machine learning to predict which university students are likely to drop out "
         "based on academic, financial, and demographic information. "
-        "The dataset comes from the UCI Machine Learning Repository and was collected for a higher-education study in Portugal (2021), "
+        "I use a dataset from the UCI Machine Learning Repository that was collected for a higher-education study in Portugal (2021), "
         "covering students across multiple Portuguese universities. "
-        "The goal is to identify at-risk students early enough to support timely intervention."
+        "My goal is to identify at-risk students early enough to support timely intervention."
     )
     st.markdown(
-        "This project analyzes the UCI student outcomes dataset with **4,424 rows and 37 columns** "
+        "I analyze the UCI student outcomes dataset with **4,424 rows and 37 columns** "
         "(**36 predictors + 1 target**). "
         "According to UCI documentation, the records come from a higher education institution and were "
         "integrated from several disjoint databases that cover enrollment information and performance after the first two semesters. "
-        "The original outcome is 3-class (`Dropout`, `Enrolled`, `Graduate`), and this HW1 implementation "
-        "reformulates the task as binary: **Dropout = 1** and **Non-dropout (Enrolled + Graduate) = 0**."
+        "The original outcome is 3-class (`Dropout`, `Enrolled`, `Graduate`), and I reformulate this task as binary: "
+        "**Dropout = 1** and **Non-dropout (Enrolled + Graduate) = 0**."
     )
     st.markdown("UCI feature types include **real, integer, and categorical** variables.")
     st.markdown(
@@ -778,19 +778,19 @@ with tab1:
 
     st.subheader("Data Cleaning and Preparation Notes")
     st.markdown(
-        "The raw CSV is semicolon-delimited, so the pipeline first standardizes column formatting and harmonizes types for modeling. "
-        f"Data-quality checks on this submission dataset show **{missing_total} missing values** and **{duplicate_rows} duplicate rows**. "
-        "Categorical-style fields were converted into model-ready numeric representations so each model can consume the same feature matrix consistently. "
-        "For prediction, the original 3-class target is converted to a binary early-warning target focused on dropout risk."
+        "Because the raw CSV is semicolon-delimited, I first standardize column formatting and harmonize data types for modeling. "
+        f"My data-quality checks on this submission dataset show **{missing_total} missing values** and **{duplicate_rows} duplicate rows**. "
+        "I convert categorical-style fields into model-ready numeric representations so each model can consume the same feature matrix consistently. "
+        "For prediction, I convert the original 3-class target into a binary early-warning target focused on dropout risk."
     )
     st.markdown(
         "Original 3-class encoding used in exploratory steps: **Dropout = 0**, **Enrolled = 1**, **Graduate = 2**. "
-        "Final HW1 prediction target for modeling and deployment: **Dropout = 1** vs **Non-dropout (Enrolled + Graduate) = 0**."
+        "My final prediction target for modeling and deployment is: **Dropout = 1** vs **Non-dropout (Enrolled + Graduate) = 0**."
     )
 
     st.subheader("Why This Problem Matters")
     st.markdown(
-        "Core goal: determine whether machine learning models can effectively identify students at risk of dropping out "
+        "My core goal is to test whether machine learning can identify students at risk of dropping out "
         "early enough to enable intervention and additional support."
     )
     st.markdown(
@@ -804,22 +804,22 @@ with tab1:
 
     st.subheader("Approach and Key Findings")
     st.markdown(
-        "The workflow follows full-stack data science practice: descriptive analytics, train-only feature recheck, multi-model tuning, explainability, and deployment. "
-        "Model comparison shows that tree ensembles provide the strongest nonlinear predictive power, while logistic regression remains useful for interpretable directional effects."
+        "My workflow follows an end-to-end data science process: descriptive analytics, train-only feature recheck, multi-model tuning, explainability, and deployment. "
+        "In my model comparison, tree ensembles provide the strongest nonlinear predictive power, while logistic regression remains useful for interpretable directional effects."
     )
     st.markdown(
-        f"In this run, overall dropout prevalence is **{eda_highlights['dropout_rate']:.1%}**. "
-        f"The strongest early warning pattern is academic: average first-semester grade is **{eda_highlights['first_sem_dropout']:.2f}** in the dropout group "
+        f"In this run, I observe an overall dropout prevalence of **{eda_highlights['dropout_rate']:.1%}**. "
+        f"The strongest early warning pattern I see is academic: average first-semester grade is **{eda_highlights['first_sem_dropout']:.2f}** in the dropout group "
         f"versus **{eda_highlights['first_sem_non_dropout']:.2f}** in the non-dropout group."
     )
     st.markdown(
-        "The final app brings together Part 1 visuals and interpretations, Part 2 model metrics/ROC/hyperparameters, and Part 3 SHAP global + local explanations. "
-        "Interactive prediction allows a user to set key feature values and inspect both predicted risk and feature-level contribution via SHAP waterfall."
+        "In this final app, I bring together Part 1 visuals and interpretations, Part 2 model metrics/ROC/hyperparameters, and Part 3 SHAP global + local explanations. "
+        "The interactive prediction section lets a user set key feature values and inspect both predicted risk and feature-level contribution via SHAP waterfall."
     )
     st.markdown(
-        f"In the current run, the best overall model for this business goal is **{exec_best_f1_model}** "
+        f"In the current run, I select **{exec_best_f1_model}** as the best overall model for this business goal "
         f"because it has the highest test-set **F1 ({float(exec_best_f1_row['f1']):.3f})**. "
-        f"Its companion metrics are **Accuracy {float(exec_best_f1_row['accuracy']):.3f}**, "
+        f"The corresponding metrics are **Accuracy {float(exec_best_f1_row['accuracy']):.3f}**, "
         f"**Precision {float(exec_best_f1_row['precision']):.3f}**, **Recall {float(exec_best_f1_row['recall']):.3f}**, "
         f"and **AUC {float(exec_best_f1_row['auc']):.3f}**."
     )
@@ -832,15 +832,16 @@ with tab1:
 
     st.subheader("Executive Takeaways")
     st.markdown(
-        "- **What this project does:** It gives each student a dropout-risk probability and a clear reason summary (SHAP drivers).\n"
-        "- **What stands out in the data:** Early academic performance and financial stability are the most actionable signals.\n"
-        "- **What this means for teams:** Advisors can focus first on high-risk students, then match support type to the main driver (academic vs financial).\n"
-        "- **Why this is useful operationally:** Retaining current students is usually more cost-effective than replacing lost enrollment, so targeted intervention has strong ROI potential.\n"
-        "- **How to use this responsibly:** Use predictions to allocate support (not to deny opportunity), and monitor model fairness and performance over time."
+        "- **What I deliver:** I assign each student a dropout-risk probability and a clear reason summary (SHAP drivers).\n"
+        "- **What I find most actionable:** Early academic performance and financial stability are the strongest intervention signals.\n"
+        "- **How I would use this in practice:** I would prioritize high-risk students first, then match intervention type to the dominant driver (academic vs financial).\n"
+        "- **Why this matters operationally:** Keeping current students enrolled is usually more cost-effective than replacing lost enrollment, so targeted intervention has strong ROI potential.\n"
+        "- **How I keep this responsible:** I use predictions to allocate support (not to deny opportunity), and I monitor model performance and fairness over time."
     )
     st.markdown(
-        "A practical rollout path is straightforward: run scoring at the start of each term, triage students into risk tiers, "
-        "launch targeted interventions within the first weeks, and re-check outcomes monthly to adjust thresholds and support capacity."
+        "My practical rollout plan is straightforward: run scoring at the start of each term, triage students into risk tiers, "
+        "launch targeted interventions within the first weeks, and re-check outcomes monthly to adjust thresholds and support capacity. "
+        "In a real advising workflow, I would share these outputs with advisor teams and financial-aid teams together so academic and financial interventions can be coordinated."
     )
 
     ds = meta["dataset_stats"]
