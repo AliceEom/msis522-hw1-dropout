@@ -1032,6 +1032,10 @@ with tab2:
 
 with tab3:
     st.header("Part 2: Predictive Analytics")
+    st.markdown(
+        "This tab surfaces all Part 2 outputs in one place: model metrics, tuning results, model-comparison charts, "
+        "best hyperparameters, and ROC curves for every classifier."
+    )
 
     def one_row_metrics(model_key: str, label: str) -> pd.DataFrame:
         m = metrics.get(model_key, {})
@@ -1438,6 +1442,8 @@ with tab3:
     plt.tight_layout()
     st.pyplot(fig_f1, clear_figure=True)
     plt.close(fig_f1)
+    st.image(str(FIGURES / "part2_f1_bar_comparison.png"), width="stretch")
+    st.caption("Saved Part 2 F1 comparison artifact from the training pipeline.")
 
     # Metric heatmap for compact side-by-side comparison.
     heat_df = summary_df.set_index("Model")[metric_cols]
