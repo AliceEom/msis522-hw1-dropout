@@ -959,27 +959,6 @@ with tab3:
         "3. **Scaling:** `StandardScaler` is applied for Logistic Regression and MLP (scale-sensitive models); tree-based models use imputation only.\n"
         "4. **Leakage control:** feature recheck, CV tuning, and preprocessing fit happen on training data; test data is used only once for final evaluation."
     )
-    with st.expander("2.1 Implementation Code (train_pipeline.py)"):
-        st.code(
-            "train_df, test_df = train_test_split(\n"
-            "    df,\n"
-            "    test_size=0.30,\n"
-            "    stratify=df['Dropout_flag'],\n"
-            "    random_state=RANDOM_STATE,\n"
-            ")\n\n"
-            "X_train = train_df[final_features].copy()\n"
-            "y_train = train_df['Dropout_flag'].astype(int).copy()\n"
-            "X_test = test_df[final_features].copy()\n"
-            "y_test = test_df['Dropout_flag'].astype(int).copy()\n\n"
-            "logistic_preprocess = Pipeline(steps=[\n"
-            "    ('imputer', SimpleImputer(strategy='median')),\n"
-            "    ('scaler', StandardScaler()),\n"
-            "])\n\n"
-            "tree_preprocess = Pipeline(steps=[\n"
-            "    ('imputer', SimpleImputer(strategy='median')),\n"
-            "])",
-            language="python",
-        )
     st.markdown(
         f"**Final selected X features:** `{', '.join(feature_names)}`"
     )
@@ -1115,22 +1094,6 @@ with tab3:
             "The pattern here is straightforward: precision improves while recall stays competitive, "
             "so the model reduces unnecessary alerts while still identifying most at-risk students."
         )
-    with st.expander("2.4 Implementation Code (train_pipeline.py)"):
-        st.code(
-            "rf_grid = {\n"
-            "    'model__n_estimators': [50, 100, 200],\n"
-            "    'model__max_depth': [3, 5, 8],\n"
-            "}\n"
-            "gs_rf = GridSearchCV(rf_pipe, rf_grid, scoring='f1', cv=cv, n_jobs=1, refit=True)\n"
-            "gs_rf.fit(X_train, y_train)\n"
-            "best_rf = gs_rf.best_estimator_\n"
-            "metrics_rf, _, prob_rf = evaluate_sklearn_classifier(best_rf, X_test, y_test)\n"
-            "best_params['random_forest'] = gs_rf.best_params_\n"
-            "model_metrics['random_forest'] = metrics_rf\n"
-            "save_json(paths.metrics / 'part2_best_params.json', best_params)\n"
-            "save_json(paths.metrics / 'part2_metrics.json', model_metrics)",
-            language="python",
-        )
 
     st.subheader("2.5 Boosted Tree (LightGBM, GridSearchCV, 5-fold)")
     st.markdown(
@@ -1167,23 +1130,6 @@ with tab3:
             "The practical takeaway is simple: this model gives the strongest probability ranking in this project "
             "(highest AUC), which helps prioritize intervention lists when resources are limited."
         )
-    with st.expander("2.5 Implementation Code (train_pipeline.py)"):
-        st.code(
-            "lgbm_grid = {\n"
-            "    'model__n_estimators': [50, 100, 200],\n"
-            "    'model__max_depth': [3, 4, 5, 6],\n"
-            "    'model__learning_rate': [0.01, 0.05, 0.1],\n"
-            "}\n"
-            "gs_lgbm = GridSearchCV(lgbm_pipe, lgbm_grid, scoring='f1', cv=cv, n_jobs=1, refit=True)\n"
-            "gs_lgbm.fit(X_train, y_train)\n"
-            "best_lgbm = gs_lgbm.best_estimator_\n"
-            "metrics_lgbm, _, prob_lgbm = evaluate_sklearn_classifier(best_lgbm, X_test, y_test)\n"
-            "best_params['lightgbm'] = gs_lgbm.best_params_\n"
-            "model_metrics['lightgbm'] = metrics_lgbm\n"
-            "save_json(paths.metrics / 'part2_best_params.json', best_params)\n"
-            "save_json(paths.metrics / 'part2_metrics.json', model_metrics)",
-            language="python",
-        )
 
     st.subheader("2.6 Neural Network (Keras MLP)")
     st.markdown(
@@ -1213,24 +1159,6 @@ with tab3:
             "In this project, the MLP gives strong ranking quality but slightly lower F1 than the best tree models, "
             "so it is useful as a nonlinear benchmark rather than the final deployment winner."
         )
-    with st.expander("2.6 Implementation Code (train_pipeline.py)"):
-        st.code(
-            "model = build_keras_mlp(input_dim=X_train_scaled.shape[1], hidden_layers=(128, 64), dropout_rate=0.2, learning_rate=0.0005)\n"
-            "model.compile(optimizer=Adam(...), loss='binary_crossentropy', metrics=['accuracy', 'auc'])\n"
-            "history = model.fit(\n"
-            "    X_train_scaled, y_train,\n"
-            "    validation_split=0.20,\n"
-            "    epochs=60,\n"
-            "    batch_size=64,\n"
-            "    class_weight=class_weights,\n"
-            "    callbacks=[EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True)],\n"
-            ")\n"
-            "mlp_prob = model.predict(X_test_scaled).ravel()\n"
-            "mlp_pred = (mlp_prob >= 0.5).astype(int)\n"
-            "metrics_mlp = compute_metrics(y_test, mlp_pred, mlp_prob)\n"
-            "model_metrics['mlp_keras'] = metrics_mlp",
-            language="python",
-        )
 
     st.subheader("Bonus +1: MLP Hyperparameter Tuning")
     st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
@@ -1253,19 +1181,6 @@ with tab3:
     )
     if not bonus_top3.empty:
         st.dataframe(bonus_top3, hide_index=True, width="stretch")
-    with st.expander("Bonus Implementation Code (train_pipeline.py)"):
-        st.code(
-            "for hidden in [(64,64), (128,128), (128,64)]:\n"
-            "    for lr in [0.001, 0.0005]:\n"
-            "        for dr in [0.0, 0.2]:\n"
-            "            model = build_keras_mlp(..., hidden_layers=hidden, learning_rate=lr, dropout_rate=dr)\n"
-            "            model.fit(X_sub, y_sub, validation_data=(X_val, y_val), class_weight=class_weights, callbacks=[EarlyStopping(...)])\n"
-            "            val_prob = model.predict(X_val).ravel()\n"
-            "            val_f1 = f1_score(y_val, (val_prob >= 0.5).astype(int))\n"
-            "            tuning_results.append({...})\n"
-            "pd.DataFrame(tuning_results).to_csv('bonus_mlp_tuning_results.csv', index=False)",
-            language="python",
-        )
 
     st.subheader("2.7 Model Comparison Summary")
     st.dataframe(comparison_df, width="stretch")
