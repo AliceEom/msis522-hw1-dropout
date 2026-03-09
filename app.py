@@ -1654,15 +1654,16 @@ with tab4:
     )
     st.markdown(
         "3. **How can this help decision-makers?**\n"
-        "- **Operational triage (who to contact first):** Combine predicted risk and top SHAP drivers to generate high/medium/low-risk outreach lists each term. "
-        "This supports advisor triage when counseling capacity is limited.\n"
-        "- **Intervention routing (what support to provide):** Match support to the dominant risk pattern. "
-        "Academic-risk students get tutoring/coaching and early check-ins; financial-risk students get payment-plan counseling, emergency aid, or micro-grants; "
-        "combined-risk students receive coordinated academic + financial support.\n"
-        "- **Business/retention impact (why this matters operationally):** Retaining current students is typically more cost-effective than replacing lost students. "
-        "Risk-tiered intervention helps allocate support budget and staff time where retention impact is expected to be highest.\n"
-        "- **Transparency in advising meetings (how to explain decisions):** Use local waterfall plots to show exactly which factors pushed one student's risk up or down, "
-        "so decisions are explainable, consistent across teams, and easier to audit."
+        "- **Deploy an early-warning workflow each term:** Generate high/medium/low-risk lists for advisors before withdrawal periods, so outreach starts early instead of after failure accumulates.\n"
+        "- **Prioritize limited advising capacity:** Use predicted risk plus SHAP drivers to decide who gets intensive support first and who gets lighter monitoring.\n"
+        "- **Route intervention by dominant risk driver:** Academic-risk students receive tutoring, study coaching, and mandatory early check-ins; financial-risk students receive payment-plan counseling, emergency aid, or micro-grants; mixed-risk students receive coordinated academic + financial support.\n"
+        "- **Act on first-semester signals quickly:** Low early grades are actionable warning signs, so faculty alerts and supplemental instruction can be triggered in the same term.\n"
+        "- **Strengthen financial-aid operations:** Tuition/debtor/scholarship signals can trigger proactive contact from financial-aid and student-accounts teams before students disengage.\n"
+        "- **Support segment-based planning:** Different groups need different responses (older or part-time students may need flexible schedules/hybrid options; program-specific risk may require targeted advising or curriculum redesign).\n"
+        "- **Improve cross-functional coordination:** Advisors, faculty, student-success services, financial-aid teams, and institutional research can use one risk framework and shared dashboard instead of isolated decisions.\n"
+        "- **Increase operational ROI:** Retaining current students is typically more cost-effective than replacing lost enrollment, so risk-tiered intervention improves how support budget and staff time are allocated.\n"
+        "- **Keep decisions transparent and auditable:** Local waterfall plots show exactly why one student's risk is high or low, which helps advisor communication and policy consistency.\n"
+        "- **Protect fairness and social impact goals:** Use model outputs for support allocation (not admissions exclusion), monitor fairness regularly, and reduce subjective bias through consistent data-driven triage."
     )
 
     extra_insights: List[str] = []
