@@ -1182,17 +1182,11 @@ with tab3:
     st.json(best_params)
 
     st.subheader("ROC Curves (All Models)")
-    roc_cols = st.columns(2)
-    roc_files = [
-        "part2_roc_logistic.png",
-        "part2_roc_decision_tree.png",
-        "part2_roc_random_forest.png",
-        "part2_roc_lightgbm.png",
-        "part2_roc_mlp_keras.png",
-    ]
-    for i, fn in enumerate(roc_files):
-        with roc_cols[i % 2]:
-            st.image(str(FIGURES / fn), width="stretch")
+    st.image(str(FIGURES / "part2_roc_logistic.png"), width="stretch")
+    st.image(str(FIGURES / "part2_roc_decision_tree.png"), width="stretch")
+    st.image(str(FIGURES / "part2_roc_random_forest.png"), width="stretch")
+    st.image(str(FIGURES / "part2_roc_lightgbm.png"), width="stretch")
+    st.image(str(FIGURES / "part2_roc_mlp_keras.png"), width="stretch")
 
     st.markdown(tradeoff_text)
 
