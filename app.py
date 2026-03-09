@@ -118,22 +118,29 @@ def make_grade_band_dropout_figure(df: pd.DataFrame) -> plt.Figure:
 def make_second_sem_violin_figure(df: pd.DataFrame) -> plt.Figure:
     tmp = df[["Dropout_flag", "Curricular units 2nd sem (grade)"]].dropna().copy()
     tmp["Outcome"] = tmp["Dropout_flag"].map({0: "Non-dropout", 1: "Dropout"})
+    tmp["Semester"] = "2nd Semester"
 
-    fig, ax = plt.subplots(figsize=(8.2, 4.8))
+    fig, ax = plt.subplots(figsize=(8.4, 5.0))
     sns.violinplot(
         data=tmp,
-        x="Outcome",
+        x="Semester",
         y="Curricular units 2nd sem (grade)",
-        order=["Non-dropout", "Dropout"],
+        hue="Outcome",
+        hue_order=["Non-dropout", "Dropout"],
+        split=True,
+        density_norm="width",
+        common_norm=False,
         inner="quartile",
+        bw_adjust=0.8,
         cut=0,
         palette={"Non-dropout": "#4C78A8", "Dropout": "#F58518"},
         ax=ax,
     )
-    ax.set_title("2nd-Semester Grade Distribution by Outcome (Violin Plot)")
+    ax.set_title("2nd-Semester Grade Distribution by Outcome (Split Violin)")
     ax.set_xlabel("")
     ax.set_ylabel("2nd-Semester Grade")
     ax.grid(axis="y", alpha=0.25)
+    ax.legend(title="", loc="upper right", frameon=False)
     plt.tight_layout()
     return fig
 
@@ -606,8 +613,8 @@ with tab2:
     st.pyplot(fig_second_sem_violin, clear_figure=True)
     plt.close(fig_second_sem_violin)
     st.caption(
-        "Violin plot of second-semester grades by outcome. "
-        "This view adds distribution shape (density), quartile lines, and tail spread beyond a standard boxplot summary."
+        "Split violin plot of second-semester grades by outcome. "
+        "Each side shows the density shape for one group, with quartile lines to summarize center and spread."
     )
     st.markdown(
         f"Second-semester performance shows a clear shift: mean grade is **{eda_highlights['second_sem_dropout']:.2f}** for dropout students "
@@ -617,7 +624,8 @@ with tab2:
         f"The dropout violin is concentrated at lower grades, while non-dropout students have a higher center "
         f"(median **{eda_highlights['second_sem_dropout_median']:.2f}** vs **{eda_highlights['second_sem_non_dropout_median']:.2f}**) "
         f"and tighter middle spread (IQR **{eda_highlights['second_sem_dropout_iqr']:.2f}** vs **{eda_highlights['second_sem_non_dropout_iqr']:.2f}**). "
-        "The dropout-group median of 0 indicates many students in this group have extremely low second-semester performance. "
+        "The dropout-group median of 0 indicates many students in this group have extremely low second-semester performance, "
+        "which is why that side appears wider near zero. "
         "This supports using semester-grade trajectories as an operational early-warning signal."
     )
 
