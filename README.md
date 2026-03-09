@@ -15,9 +15,8 @@ It follows the required structure: descriptive analytics, predictive modeling, S
   - EDA interpretation style/captions
   - feature-selection rationale
   - model trade-off narrative
-- Source files copied for traceability:
-  - `legacy_assets/510 ML Final Project Alice Eom.ipynb`
-  - `legacy_assets/510ML_Final Project_Gold_Team3.pdf`
+- Prior source files were used locally for writing style and interpretation consistency.
+- Legacy files are intentionally excluded from this submission repo to minimize unnecessary personal/project history exposure.
 - New implementation adds HW1-specific requirements that were missing previously:
   - train-only recheck for feature selection
   - 5-fold GridSearchCV for CART/RF/Boosted Trees
