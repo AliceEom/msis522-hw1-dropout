@@ -1319,10 +1319,10 @@ with tab3:
             "so it is useful as a nonlinear benchmark rather than the final deployment winner."
         )
 
-    st.subheader("Bonus +1: MLP Hyperparameter Tuning")
+    st.subheader("MLP Hyperparameter Tuning")
     st.image(str(FIGURES / "bonus_mlp_tuning_heatmap.png"), width="stretch")
     st.markdown(
-        "Bonus tuning approach: we performed a structured grid search over hidden-layer width patterns, "
+        "Tuning approach: we performed a structured grid search over hidden-layer width patterns, "
         "learning rates, and dropout rates using a train-only validation split and validation F1 as the selection criterion."
     )
     st.markdown(
