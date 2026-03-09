@@ -368,6 +368,9 @@ with tab2:
         f"Observed class mix: **Dropout = {eda_highlights['dropout_rate']:.1%}** and **Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**. "
         "This confirms that F1/AUC are more reliable than accuracy alone for model selection."
     )
+    st.markdown(
+        "Imbalance response used in this project: stratified splitting, class-weighted training, and evaluation focused on F1/AUC instead of accuracy-only reporting."
+    )
 
     col_a, col_b = st.columns(2)
     with col_a:
@@ -413,6 +416,15 @@ with tab3:
     st.markdown(
         "Target is encoded as `Dropout_flag` (1/0), then data is split with a stratified 70/30 train-test split (`random_state=42`). "
         "Missing values are imputed; scaling is applied where needed (logistic/MLP), and all feature recheck and tuning decisions are performed on training data to prevent leakage."
+    )
+    st.subheader("Imbalanced-Data Handling")
+    st.markdown(
+        f"The binary target is imbalanced (**Dropout = {eda_highlights['dropout_rate']:.1%}**, "
+        f"**Non-dropout = {(1-eda_highlights['dropout_rate']):.1%}**). "
+        "To address this, the workflow uses: "
+        "(1) stratified train/test split, "
+        "(2) class-weighted learning (`class_weight='balanced'` for logistic, decision tree, random forest, and LightGBM; computed class weights for MLP), and "
+        "(3) model comparison based on F1 and AUC so minority-class performance is not hidden by overall accuracy."
     )
 
     st.subheader("2.7 Model Comparison Summary")

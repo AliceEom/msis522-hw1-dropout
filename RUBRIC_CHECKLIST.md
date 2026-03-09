@@ -6,7 +6,7 @@
 - [x] Clear prediction target
   - Evidence: binary `Dropout_flag` in `train_pipeline.py`, summary in `app.py` Tab 1
 - [x] Imbalance addressed
-  - Evidence: F1-first comparison + class_weight usage in models (`train_pipeline.py`)
+  - Evidence: stratified split (`train_pipeline.py`), class-weighted models (`class_weight='balanced'` and MLP class weights), and F1/AUC-focused evaluation surfaced in `app.py` (Tab 2/Tab 3)
 
 ## Part 1 (25)
 - [x] 1.1 Dataset introduction

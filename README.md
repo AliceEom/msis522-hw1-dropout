@@ -26,6 +26,10 @@ It follows the required structure: descriptive analytics, predictive modeling, S
 - Train-only feature recheck (p-value screening + correlation filtering)
 - 5-fold `GridSearchCV` for Decision Tree, Random Forest, and Boosted Trees
 - Keras MLP and bonus hyperparameter tuning
+- Imbalanced target handling:
+  - stratified split
+  - class-weighted training (`class_weight='balanced'` for tree/logistic models, computed class weights for MLP)
+  - F1 and AUC emphasized for model selection
 - SHAP required plots (beeswarm, bar, waterfall)
 - Streamlit app with 4 required tabs and interactive prediction
 
