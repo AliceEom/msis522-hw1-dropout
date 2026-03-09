@@ -52,6 +52,13 @@ def strongest_corr_pair(df: pd.DataFrame, feature_names: List[str]) -> Tuple[str
     return str(corr.index[i]), str(corr.columns[j]), float(arr[i, j])
 
 
+def get_full_corr_columns(df: pd.DataFrame) -> List[str]:
+    cols = [c for c in df.select_dtypes(include=[np.number]).columns.tolist() if c != "Dropout_flag"]
+    if "Dropout_flag" in df.columns:
+        cols.append("Dropout_flag")
+    return cols
+
+
 def make_dropout_rate_figure(
     df: pd.DataFrame,
     feature: str,
@@ -121,6 +128,26 @@ def make_second_sem_violin_figure(df: pd.DataFrame) -> plt.Figure:
     ax.set_xlabel("")
     ax.set_ylabel("2nd-Semester Grade")
     ax.grid(axis="y", alpha=0.25)
+    plt.tight_layout()
+    return fig
+
+
+def make_full_correlation_heatmap_figure(df: pd.DataFrame, corr_cols: List[str]) -> plt.Figure:
+    corr = df[corr_cols].corr()
+
+    fig, ax = plt.subplots(figsize=(16, 12))
+    sns.heatmap(
+        corr,
+        cmap="coolwarm",
+        center=0,
+        cbar_kws={"shrink": 0.8},
+        xticklabels=True,
+        yticklabels=True,
+        ax=ax,
+    )
+    ax.set_title("Full Correlation Heatmap (All Numeric Columns)")
+    ax.tick_params(axis="x", labelrotation=90, labelsize=8)
+    ax.tick_params(axis="y", labelrotation=0, labelsize=8)
     plt.tight_layout()
     return fig
 
@@ -365,12 +392,13 @@ missing_total = int(df.isna().sum().sum())
 duplicate_rows = int(df.duplicated().sum())
 
 feature_names = meta["feature_selection"]["final_features"]
+corr_columns = get_full_corr_columns(df)
 manual_input_features = meta.get("manual_input_features", [])
 feature_ranges = meta["feature_ranges"]
 feature_means = meta["feature_means"]
 best_tree_model = meta["best_tree_model_for_shap"]
 captions = meta["captions"]
-top_corr_a, top_corr_b, top_corr_val = strongest_corr_pair(df, feature_names)
+top_corr_a, top_corr_b, top_corr_val = strongest_corr_pair(df, corr_columns)
 shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_model)
 eda_highlights = compute_eda_highlights(df)
 tradeoff_text = build_model_tradeoff_text(comparison_df)
@@ -650,11 +678,16 @@ with tab2:
         )
 
     st.subheader("1.4 Correlation Heatmap")
-    st.image(str(FIGURES / "part1_correlation_heatmap.png"), width="stretch")
-    st.caption(captions["correlation_heatmap"])
+    fig_corr = make_full_correlation_heatmap_figure(df, corr_columns)
+    st.pyplot(fig_corr, clear_figure=True)
+    plt.close(fig_corr)
+    st.caption(
+        "Correlation heatmap across all numeric columns (full dataset view). "
+        "This includes all modeling predictors plus the binary target flag."
+    )
     if not np.isnan(top_corr_val):
         st.markdown(
-            f"Strongest absolute correlation in the selected feature set: **{top_corr_a}** vs **{top_corr_b}** "
+            f"Strongest absolute correlation in the full numeric set: **{top_corr_a}** vs **{top_corr_b}** "
             f"with **|r| = {top_corr_val:.3f}**."
         )
 
