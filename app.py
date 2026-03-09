@@ -1604,51 +1604,60 @@ with tab3:
     metric_chart_df[selected_metric] = pd.to_numeric(metric_chart_df[selected_metric], errors="coerce")
     metric_chart_df = metric_chart_df.dropna(subset=[selected_metric]).reset_index(drop=True)
     if not metric_chart_df.empty:
-        fig_metric, ax_metric = plt.subplots(figsize=(10, 4.8))
-        sns.barplot(data=metric_chart_df, x="Model", y=selected_metric, palette="Blues", ax=ax_metric)
-        metric_min = float(metric_chart_df[selected_metric].min())
-        metric_max = float(metric_chart_df[selected_metric].max())
+        metric_plot_df = metric_chart_df.rename(columns={selected_metric: "MetricValue"}).copy()
+        metric_plot_df["Delta_vs_Best"] = metric_plot_df["MetricValue"] - float(metric_plot_df["MetricValue"].iloc[0])
+        model_order = metric_plot_df["Model"].tolist()
+        metric_min = float(metric_plot_df["MetricValue"].min())
+        metric_max = float(metric_plot_df["MetricValue"].max())
         metric_span = max(metric_max - metric_min, 0.001)
         margin = max(metric_span * 0.35, 0.005)
         y_low = max(0.0, metric_min - margin)
         y_high = min(1.0, metric_max + margin)
         if y_high <= y_low:
             y_high = min(1.0, y_low + 0.05)
-        ax_metric.set_ylim(y_low, y_high)
-        ax_metric.set_title(f"{selected_metric} Comparison (Zoomed Scale)")
-        ax_metric.set_xlabel("")
-        ax_metric.set_ylabel(selected_metric)
-        ax_metric.tick_params(axis="x", rotation=18)
-        for idx, val in enumerate(metric_chart_df[selected_metric].tolist()):
-            ax_metric.text(idx, float(val) + (metric_span * 0.02 + 0.0008), f"{val:.3f}", ha="center", va="bottom", fontsize=9)
-        ax_metric.grid(axis="y", alpha=0.25)
-        plt.tight_layout()
-        st.pyplot(fig_metric, clear_figure=True)
-        plt.close(fig_metric)
 
-        top_val = float(metric_chart_df[selected_metric].iloc[0])
-        delta_df = metric_chart_df.copy()
-        delta_df["Delta_vs_Best"] = delta_df[selected_metric] - top_val
-        fig_delta_metric, ax_delta_metric = plt.subplots(figsize=(10, 3.6))
-        sns.barplot(data=delta_df, x="Model", y="Delta_vs_Best", palette="coolwarm", ax=ax_delta_metric)
-        ax_delta_metric.axhline(0.0, color="#333333", linewidth=1.1)
-        ax_delta_metric.set_title(f"Gap from Best {selected_metric} (0 = Best Model)")
-        ax_delta_metric.set_xlabel("")
-        ax_delta_metric.set_ylabel("Delta")
-        ax_delta_metric.tick_params(axis="x", rotation=18)
-        for idx, val in enumerate(delta_df["Delta_vs_Best"].tolist()):
-            ax_delta_metric.text(
-                idx,
-                float(val) + (0.0015 if val >= 0 else -0.0015),
-                f"{val:+.3f}",
-                ha="center",
-                va="bottom" if val >= 0 else "top",
-                fontsize=9,
+        main_bars = (
+            alt.Chart(metric_plot_df)
+            .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+            .encode(
+                x=alt.X("Model:N", sort=model_order, title="", axis=alt.Axis(labelAngle=-20)),
+                y=alt.Y("MetricValue:Q", title=selected_metric, scale=alt.Scale(domain=[y_low, y_high])),
+                color=alt.Color("MetricValue:Q", legend=None, scale=alt.Scale(scheme="tealblues")),
+                tooltip=[
+                    alt.Tooltip("Model:N"),
+                    alt.Tooltip("MetricValue:Q", format=".3f"),
+                    alt.Tooltip("Delta_vs_Best:Q", format="+.3f"),
+                ],
             )
-        ax_delta_metric.grid(axis="y", alpha=0.2)
-        plt.tight_layout()
-        st.pyplot(fig_delta_metric, clear_figure=True)
-        plt.close(fig_delta_metric)
+            .properties(height=300, title=f"{selected_metric} Comparison (Zoomed)")
+        )
+        main_text = main_bars.mark_text(dy=-7, color="#1f2937").encode(text=alt.Text("MetricValue:Q", format=".3f"))
+        top_chart = (main_bars + main_text).interactive()
+
+        delta_bars = (
+            alt.Chart(metric_plot_df)
+            .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
+            .encode(
+                x=alt.X("Model:N", sort=model_order, title="", axis=alt.Axis(labelAngle=-20)),
+                y=alt.Y("Delta_vs_Best:Q", title=f"Delta from Best {selected_metric}"),
+                color=alt.condition(alt.datum.Delta_vs_Best == 0, alt.value("#2a9d8f"), alt.value("#e76f51")),
+                tooltip=[
+                    alt.Tooltip("Model:N"),
+                    alt.Tooltip("Delta_vs_Best:Q", format="+.3f"),
+                ],
+            )
+            .properties(height=220, title="Gap from Best Model (0 means best)")
+        )
+        zero_rule = alt.Chart(pd.DataFrame({"y": [0.0]})).mark_rule(color="#4b5563", strokeDash=[5, 4]).encode(y="y:Q")
+        delta_text = delta_bars.mark_text(color="#1f2937", dy=-8).encode(
+            text=alt.Text("Delta_vs_Best:Q", format="+.3f")
+        )
+        bottom_chart = (zero_rule + delta_bars + delta_text).interactive()
+
+        st.altair_chart(
+            alt.vconcat(top_chart, bottom_chart).resolve_scale(x="shared"),
+            use_container_width=True,
+        )
     else:
         st.warning("Metric chart could not be rendered for the selected metric.")
 
