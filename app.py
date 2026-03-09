@@ -16,7 +16,7 @@ import shap
 import streamlit as st
 import tensorflow as tf
 
-st.set_page_config(page_title="MSIS 522 HW1 - Dropout Workflow", layout="wide")
+st.set_page_config(page_title="Student Dropout Risk Modeling", layout="wide")
 
 ROOT = Path(__file__).resolve().parent
 ARTIFACTS = ROOT / "artifacts"
@@ -266,7 +266,7 @@ shap_interpretation = compute_shap_interpretation(df, feature_names, best_tree_m
 eda_highlights = compute_eda_highlights(df)
 tradeoff_text = build_model_tradeoff_text(comparison_df)
 
-st.title("MSIS 522 HW1: End-to-End Data Science Workflow")
+st.title("Student Dropout Risk Modeling for Early Intervention")
 st.caption(
     "Dataset: UCI Machine Learning Repository - Predict Students' Dropout and Academic Success "
     "(DOI: 10.24432/C5MC89)"
