@@ -480,11 +480,11 @@ with tab2:
         )
         st.markdown(
             f"Distribution detail: median is **{eda_highlights['admission_dropout_median']:.2f}** (dropout) vs "
-            f"**{eda_highlights['admission_non_dropout_median']:.2f}** (non-dropout), and IQR is "
+            f"**{eda_highlights['admission_non_dropout_median']:.2f}** (non-dropout), and the middle-50% range is "
             f"**{eda_highlights['admission_dropout_iqr']:.2f}** vs **{eda_highlights['admission_non_dropout_iqr']:.2f}**. "
-            f"Using the 1.5×IQR rule, outlier rates are **{eda_highlights['admission_dropout_outlier_rate']:.1%}** "
-            f"(dropout) and **{eda_highlights['admission_non_dropout_outlier_rate']:.1%}** (non-dropout), "
-            "which indicates overlap but still a meaningful central-shift toward lower admission readiness in the dropout group."
+            f"Students with unusually high/low values (outliers) account for **{eda_highlights['admission_dropout_outlier_rate']:.1%}** "
+            f"in the dropout group and **{eda_highlights['admission_non_dropout_outlier_rate']:.1%}** in the non-dropout group. "
+            "In plain terms, the two groups overlap, but the center of the dropout group is still shifted lower."
         )
     with col_b:
         st.image(str(FIGURES / "part1_first_sem_grade_boxplot.png"), width="stretch")
@@ -496,10 +496,10 @@ with tab2:
         )
         st.markdown(
             f"Distribution detail: median is **{eda_highlights['first_sem_dropout_median']:.2f}** (dropout) vs "
-            f"**{eda_highlights['first_sem_non_dropout_median']:.2f}** (non-dropout), with IQR "
+            f"**{eda_highlights['first_sem_non_dropout_median']:.2f}** (non-dropout), with middle-50% range "
             f"**{eda_highlights['first_sem_dropout_iqr']:.2f}** vs **{eda_highlights['first_sem_non_dropout_iqr']:.2f}**. "
-            f"Outlier rates by the 1.5×IQR rule are **{eda_highlights['first_sem_dropout_outlier_rate']:.1%}** "
-            f"and **{eda_highlights['first_sem_non_dropout_outlier_rate']:.1%}** respectively. "
+            f"The share of unusual values is **{eda_highlights['first_sem_dropout_outlier_rate']:.1%}** in the dropout group "
+            f"and **{eda_highlights['first_sem_non_dropout_outlier_rate']:.1%}** in the non-dropout group. "
             "The larger center gap than in admission scores suggests first-semester performance is a much sharper early-separation signal."
         )
 
