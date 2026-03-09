@@ -2025,6 +2025,9 @@ with tab4:
 
     row_df = pd.DataFrame([input_values])
 
+    if "prediction_cache" not in st.session_state:
+        st.session_state["prediction_cache"] = None
+
     run_clicked = st.button("Run Prediction", type="primary")
     if auto_update or run_clicked:
         prob, pred = predict_with_model(
@@ -2034,9 +2037,31 @@ with tab4:
             models,
             threshold=float(prediction_threshold),
         )
+        if selected_model in {"decision_tree", "random_forest", "lightgbm"}:
+            shap_model = selected_model
+        else:
+            shap_model = best_tree_model
+        st.session_state["prediction_cache"] = {
+            "prob": float(prob),
+            "pred": int(pred),
+            "threshold": float(prediction_threshold),
+            "selected_model": str(selected_model),
+            "shap_model": str(shap_model),
+            "input_values": {k: float(v) for k, v in input_values.items()},
+        }
+
+    cached = st.session_state.get("prediction_cache")
+    if cached is not None:
+        prob = float(cached["prob"])
+        pred = int(cached["pred"])
+        threshold_used = float(cached["threshold"])
+        selected_model_used = str(cached["selected_model"])
+        shap_model = str(cached["shap_model"])
+        row_df_cached = pd.DataFrame([cached["input_values"]])[feature_names]
+
         pred_label = "Dropout (1)" if pred == 1 else "Non-dropout (0)"
         st.markdown(
-            f"Predicted outcome: **{pred_label}** at threshold **{prediction_threshold:.2f}**."
+            f"Predicted outcome: **{pred_label}** at threshold **{threshold_used:.2f}**."
         )
 
         m1, m2, m3 = st.columns(3)
@@ -2047,54 +2072,34 @@ with tab4:
         with m3:
             st.metric("Predicted Class", pred_label)
 
-        prob_df = pd.DataFrame(
-            {
-                "Outcome": ["Non-dropout (0)", "Dropout (1)"],
-                "Probability": [1 - prob, prob],
-            }
+        prob_plot_df = pd.DataFrame(
+            {"Probability": [1 - prob, prob]},
+            index=["Non-dropout (0)", "Dropout (1)"],
         )
-        prob_chart = (
-            alt.Chart(prob_df)
-            .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
-            .encode(
-                x=alt.X("Outcome:N", title=""),
-                y=alt.Y("Probability:Q", scale=alt.Scale(domain=[0, 1]), title="Probability"),
-                color=alt.Color("Outcome:N", legend=None, scale=alt.Scale(range=["#4c9f70", "#c44e52"])),
-                tooltip=[
-                    alt.Tooltip("Outcome:N"),
-                    alt.Tooltip("Probability:Q", format=".3f"),
-                ],
-            )
-        )
-        st.altair_chart(prob_chart.properties(height=300).interactive(), use_container_width=True)
-        prob_table = prob_df.copy()
-        prob_table["Probability"] = prob_table["Probability"].map(lambda x: f"{x:.3f}")
-        st.dataframe(prob_table, hide_index=True, width="stretch")
+        st.bar_chart(prob_plot_df, use_container_width=True)
         st.caption(
-            f"Interactive probability chart: hover for exact values. Current decision threshold is **{prediction_threshold:.2f}**."
+            f"Probability chart for the latest prediction. Current decision threshold is **{threshold_used:.2f}**."
         )
 
-        if selected_model in {"decision_tree", "random_forest", "lightgbm"}:
-            shap_model = selected_model
+        if selected_model_used in {"decision_tree", "random_forest", "lightgbm"}:
             st.info(
-                f"Waterfall explanation uses the selected tree model: **{model_label.get(selected_model, selected_model)}**."
+                f"Waterfall explanation uses the selected tree model: **{model_label.get(selected_model_used, selected_model_used)}**."
             )
         else:
-            shap_model = best_tree_model
             st.info(
-                f"Selected model **{model_label.get(selected_model, selected_model)}** is non-tree. "
+                f"Selected model **{model_label.get(selected_model_used, selected_model_used)}** is non-tree. "
                 f"For local SHAP explainability, waterfall is generated with the best tree-based model "
                 f"**{model_label.get(best_tree_model, best_tree_model)}**."
             )
 
-        fig = make_custom_waterfall(shap_model, row_df, feature_names, models)
+        fig = make_custom_waterfall(shap_model, row_df_cached, feature_names, models)
         st.pyplot(fig, clear_figure=True)
         st.markdown(
             "Waterfall reading tip: start at the baseline risk, then read bars from top to bottom. "
             "Bars to the right increase dropout risk; bars to the left reduce risk. "
             "The largest bars are the most actionable drivers for this student."
         )
-        top_pos, top_neg = compute_custom_shap_contributions(shap_model, row_df, feature_names, models, top_n=5)
+        top_pos, top_neg = compute_custom_shap_contributions(shap_model, row_df_cached, feature_names, models, top_n=5)
         contrib_df = pd.concat([top_pos, top_neg], ignore_index=True).drop_duplicates(subset=["Feature"]).copy()
         if not contrib_df.empty:
             contrib_df["Direction"] = np.where(contrib_df["SHAP Value"] >= 0, "Risk-increasing", "Risk-reducing")
