@@ -443,6 +443,12 @@ missing_total = int(df.isna().sum().sum())
 duplicate_rows = int(df.duplicated().sum())
 
 feature_names = meta["feature_selection"]["final_features"]
+feature_selection_meta = meta.get("feature_selection", {})
+selected_18_rechecked = feature_selection_meta.get("selected_18_rechecked", [])
+selected_10_candidate = feature_selection_meta.get("selected_10", [])
+cv_f1_18 = float(feature_selection_meta.get("cv_f1_18", np.nan))
+cv_f1_10 = float(feature_selection_meta.get("cv_f1_10", np.nan))
+feature_choice_logic = meta.get("final_model_choice_logic", "")
 corr_columns = get_full_corr_columns(df)
 corr_full = df[corr_columns].corr()
 focus_corr_columns = get_top_target_corr_columns(corr_full, target_col="Dropout_flag", top_k=12)
@@ -873,6 +879,33 @@ with tab3:
     st.markdown(
         f"**Final selected X features:** `{', '.join(feature_names)}`"
     )
+    st.markdown("**Why `n=10` final features? (Train-only recheck evidence)**")
+    st.markdown(
+        "1. Start from the prior 18-feature baseline list.\n"
+        "2. Recheck only on the training split to prevent leakage: univariate logistic screening (`p < 0.05`) and train-only correlation filtering (`|r| > 0.75`).\n"
+        "3. Build a 10-feature candidate by ranking absolute logistic coefficients inside the rechecked 18-feature set.\n"
+        "4. Compare `18-feature` vs `10-feature` sets using training-only 5-fold Stratified CV with F1 as the selection metric."
+    )
+    if not np.isnan(cv_f1_18) and not np.isnan(cv_f1_10):
+        st.markdown(
+            f"CV result: **F1(18) = {cv_f1_18:.3f}** vs **F1(10) = {cv_f1_10:.3f}** "
+            f"(difference: **{cv_f1_10 - cv_f1_18:+.3f}** toward the selected set)."
+        )
+    if feature_choice_logic:
+        st.caption(f"Selection rule: {feature_choice_logic}")
+    with st.expander("Feature-selection details (18-feature and 10-feature candidate lists)"):
+        st.markdown(
+            f"**Rechecked 18-feature set** (`n={len(selected_18_rechecked)}`): "
+            + (f"`{', '.join(selected_18_rechecked)}`" if selected_18_rechecked else "`N/A`")
+        )
+        st.markdown(
+            f"**10-feature candidate** (`n={len(selected_10_candidate)}`): "
+            + (f"`{', '.join(selected_10_candidate)}`" if selected_10_candidate else "`N/A`")
+        )
+        st.markdown(
+            f"**Final deployed set** (`n={len(feature_names)}`): "
+            + (f"`{', '.join(feature_names)}`" if feature_names else "`N/A`")
+        )
     st.markdown(
         "Tuning/evaluation protocol: Decision Tree, Random Forest, and LightGBM are tuned with **5-fold Stratified CV** "
         "on the training split only (`random_state=42`); MLP hyperparameters are tuned with a **train-only hold-out validation split**; "
