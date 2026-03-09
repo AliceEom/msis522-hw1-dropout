@@ -913,12 +913,12 @@ def main() -> None:
             "We prioritize F1 and AUC to avoid over-crediting majority-class predictions."
         ),
         "admission_grade_boxplot": (
-            "Admission grade is generally lower in the dropout group, consistent with the earlier project narrative. "
+            "Admission grade is generally lower in the dropout group. "
             "This supports using academic readiness as an early risk signal."
         ),
         "first_sem_grade_boxplot": (
             "1st-semester grade separates outcomes clearly and appears as the strongest practical predictor. "
-            "This aligns with the previous notebook insight that early academic performance drives risk stratification."
+            "This indicates that early academic performance is central to risk stratification."
         ),
         "dropout_by_grade_quartile": (
             "Students in the lowest first-semester quartile have substantially higher dropout risk than the upper quartiles. "
@@ -974,7 +974,7 @@ def main() -> None:
 
     save_json(paths.metadata / "project_metadata.json", metadata)
 
-    # Save model comparison paragraph draft (reused style from prior project).
+    # Save model comparison paragraph draft for report/app narrative.
     comparison_text = (
         "Across models, tree ensembles capture nonlinear dropout patterns better than linear baselines, "
         "while logistic regression remains useful for interpretability through signed effects. "

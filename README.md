@@ -5,26 +5,28 @@ It follows the required structure: descriptive analytics, predictive modeling, S
 
 ## 1. Dataset
 - File: `data/studentdata_raw.csv`
-- Source: UCI Student Dropout and Academic Success dataset
-- Rows: 4,424
-- Columns: 37
-- Task formulation: Binary classification (`Dropout=1`, `Enrolled+Graduate=0`)
+- Source: [UCI Machine Learning Repository - Predict Students' Dropout and Academic Success](https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+academic+success)
+- DOI: `10.24432/C5MC89`
+- Local data shape: 4,424 rows and 37 columns (`36 predictors + 1 target`)
+- Problem type: Classification (binary formulation for HW1: `Dropout=1`, `Enrolled+Graduate=0`)
+- Data context (UCI): records from a higher education institution, merged from several disjoint databases at enrollment and after first/second semester performance.
 
-## 2. Reuse Strategy (from previous project)
-- Prior notebook and PPT insights were reused for:
-  - EDA interpretation style/captions
-  - feature-selection rationale
-  - model trade-off narrative
-- Prior source files were used locally for writing style and interpretation consistency.
-- Legacy files are intentionally excluded from this submission repo to minimize unnecessary personal/project history exposure.
-- New implementation adds HW1-specific requirements that were missing previously:
-  - train-only recheck for feature selection
-  - 5-fold GridSearchCV for CART/RF/Boosted Trees
-  - Keras MLP + bonus hyperparameter tuning
-  - SHAP required 3 plots
-  - Streamlit 4-tab app with interactive prediction
+## 2. Dataset Description for Report/Slides
+- The dataset includes **4,424 students** and **36 predictive features** covering demographic, application, financial, and academic dimensions.
+- The original UCI task is a 3-class outcome (`Dropout`, `Enrolled`, `Graduate`) with class imbalance; this HW1 implementation reformulates the target into binary dropout risk.
+- Target used in this repository:
+  - `1 = Dropout`
+  - `0 = Enrolled or Graduate`
 
-## 3. Train Pipeline
+## 3. HW1 Requirement Coverage
+- Train/test split first (`70/30`, `stratify`, `random_state=42`)
+- Train-only feature recheck (p-value screening + correlation filtering)
+- 5-fold `GridSearchCV` for Decision Tree, Random Forest, and Boosted Trees
+- Keras MLP and bonus hyperparameter tuning
+- SHAP required plots (beeswarm, bar, waterfall)
+- Streamlit app with 4 required tabs and interactive prediction
+
+## 4. Train Pipeline
 Main script: `train_pipeline.py`
 
 ### Run
@@ -54,7 +56,7 @@ python3 train_pipeline.py
    - waterfall for one high-risk case
 7. Saves models, metrics, params, and figures for Streamlit.
 
-## 4. Streamlit App
+## 5. Streamlit App
 Main app: `app.py`
 
 ### Run
@@ -74,14 +76,14 @@ streamlit run app.py
 - App returns class + dropout probability.
 - SHAP waterfall is shown for selected tree model (or best tree fallback for non-tree models).
 
-## 5. Artifacts
+## 6. Artifacts
 Generated under `artifacts/`:
 - `models/`: saved pretrained models (no retraining in app)
 - `metrics/`: model metrics, best params, comparison tables
 - `figures/`: Part 1/2/3 and bonus plots
 - `metadata/`: project metadata and app content references
 
-## 6. HW1 Deliverables Checklist
+## 7. HW1 Deliverables Checklist
 - [x] Analysis code (scripts)
 - [x] Streamlit app code (`app.py`)
 - [x] Saved model files
@@ -90,7 +92,7 @@ Generated under `artifacts/`:
 - [x] `README.md`
 - [ ] Public deployed Streamlit URL (to add after deployment)
 
-## 7. Reproducibility Notes
+## 8. Reproducibility Notes
 - `random_state=42` is used for all stochastic operations.
 - App loads saved models; it does not retrain models on the fly.
 - If running on macOS Apple Silicon, TensorFlow install may differ from Linux cloud runtime.

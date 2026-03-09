@@ -156,7 +156,10 @@ best_tree_model = meta["best_tree_model_for_shap"]
 captions = meta["captions"]
 
 st.title("MSIS 522 HW1: End-to-End Data Science Workflow")
-st.caption("Dataset: UCI Student Dropout and Academic Success (binary dropout formulation)")
+st.caption(
+    "Dataset: UCI Machine Learning Repository - Predict Students' Dropout and Academic Success "
+    "(DOI: 10.24432/C5MC89)"
+)
 
 
 tab1, tab2, tab3, tab4 = st.tabs(
@@ -172,9 +175,15 @@ tab1, tab2, tab3, tab4 = st.tabs(
 with tab1:
     st.subheader("Dataset and Prediction Task")
     st.markdown(
-        "This project analyzes the UCI student outcomes dataset with **4,424 rows and 37 columns**. "
-        "The prediction target is reformulated as a binary task: **Dropout = 1** and **Non-dropout (Enrolled + Graduate) = 0**. "
-        "Features include application profile, prior qualification, demographics, tuition/payment status, and semester-level academic performance."
+        "This project analyzes the UCI student outcomes dataset with **4,424 rows and 37 columns** "
+        "(**36 predictors + 1 target**). "
+        "According to UCI documentation, the records come from a higher education institution and were "
+        "integrated from several disjoint databases that cover enrollment information and performance after the first two semesters. "
+        "The original outcome is 3-class (`Dropout`, `Enrolled`, `Graduate`), and this HW1 implementation "
+        "reformulates the task as binary: **Dropout = 1** and **Non-dropout (Enrolled + Graduate) = 0**."
+    )
+    st.markdown(
+        "Source: [UCI Dataset Page](https://archive.ics.uci.edu/dataset/697/predict+students+dropout+and+academic+success)"
     )
 
     st.subheader("Why This Problem Matters")

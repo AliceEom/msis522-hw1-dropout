@@ -199,8 +199,8 @@
   "best_tree_model_for_shap": "random_forest",
   "captions": {
     "target_distribution": "Dropout and non-dropout classes are not balanced, so accuracy alone is not enough for evaluation. We prioritize F1 and AUC to avoid over-crediting majority-class predictions.",
-    "admission_grade_boxplot": "Admission grade is generally lower in the dropout group, consistent with the earlier project narrative. This supports using academic readiness as an early risk signal.",
-    "first_sem_grade_boxplot": "1st-semester grade separates outcomes clearly and appears as the strongest practical predictor. This aligns with the previous notebook insight that early academic performance drives risk stratification.",
+    "admission_grade_boxplot": "Admission grade is generally lower in the dropout group. This supports using academic readiness as an early risk signal.",
+    "first_sem_grade_boxplot": "1st-semester grade separates outcomes clearly and appears as the strongest practical predictor. This indicates that early academic performance is central to risk stratification.",
     "dropout_by_grade_quartile": "Students in the lowest first-semester quartile have substantially higher dropout risk than the upper quartiles. This nonlinear risk jump justifies targeted early intervention for Q1 students.",
     "correlation_heatmap": "Several academic variables are strongly correlated, which is why correlation filtering was reapplied on train only. Reducing collinearity improves model stability and interpretability."
   },
