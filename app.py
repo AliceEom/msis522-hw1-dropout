@@ -644,7 +644,7 @@ with tab2:
         "while the non-dropout violin is widest around higher grades."
     )
     st.markdown(
-        f"Your observation about the upper side is also correct: the dropout violin has a visible shoulder in the 10-14 range. "
+        f"The upper-side shoulder is also meaningful: the dropout violin has a visible density concentration in the 10-14 range. "
         f"In this dataset, about **{eda_highlights['second_sem_dropout_ge10_rate']:.1%}** of dropout students are at **10+**, "
         f"and **{eda_highlights['second_sem_dropout_ge12_rate']:.1%}** are at **12+**. "
         "That means dropout risk is not explained by grades alone; a meaningful subgroup has decent grades but likely faces other pressures "
